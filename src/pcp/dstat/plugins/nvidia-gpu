@@ -1,0 +1,11 @@
+#
+# pcp-dstat(1) configuration file - see pcp-dstat(5)
+#
+
+[nvidia-gpu]
+label = gpu%I
+printtype = b
+precision = 0
+grouptype = 2
+util% = nvidia.gpuactive
+mem% = 100 * nvidia.memused / nvidia.memtotal

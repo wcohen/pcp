@@ -4,8 +4,9 @@
 
 [nvidia-gpu]
 label = gpu%I
-printtype = b
 precision = 0
+printtype = p
+colorstep = 34
 grouptype = 2
 util% = nvidia.gpuactive
 mem% = 100 * nvidia.memused / nvidia.memtotal

@@ -3,10 +3,11 @@
 #
 
 [amd-gpu]
-label = gpu%I
+label = %I
 precision = 0
 printtype = p
 colorstep = 34
-grouptype = 2
+grouptype = 1
+filtertype = gpu
 util% = amdgpu.gpu.load
 mem% = 100 * amdgpu.memory.used / amdgpu.memory.total

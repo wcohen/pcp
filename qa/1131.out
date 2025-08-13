@@ -110,15 +110,6 @@ QA output created by 1131
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": "507688.980"
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -260,15 +251,6 @@ QA output created by 1131
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": "507689.980"
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -410,15 +392,6 @@ QA output created by 1131
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": "507690.980"
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -560,15 +533,6 @@ QA output created by 1131
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": "507691.980"
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -710,15 +674,6 @@ QA output created by 1131
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": "507692.980"
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -849,15 +804,6 @@ QA output created by 1131
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": 507688.9
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -999,15 +945,6 @@ QA output created by 1131
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": 507689.9
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -1149,15 +1086,6 @@ QA output created by 1131
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": 507690.9
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -1299,15 +1227,6 @@ QA output created by 1131
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": 507691.9
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -1449,15 +1368,6 @@ QA output created by 1131
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": 507692.9
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -1618,17 +1528,6 @@ QA output created by 1131
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@semantics": "instant",
-                      "@type": "64-bit float",
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": "507688.980"
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -1808,17 +1707,6 @@ QA output created by 1131
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@semantics": "instant",
-                      "@type": "64-bit float",
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": "507689.980"
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -1998,17 +1886,6 @@ QA output created by 1131
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@semantics": "instant",
-                      "@type": "64-bit float",
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": "507690.980"
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -2188,17 +2065,6 @@ QA output created by 1131
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@semantics": "instant",
-                      "@type": "64-bit float",
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": "507691.980"
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -2378,17 +2244,6 @@ QA output created by 1131
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@semantics": "instant",
-                      "@type": "64-bit float",
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": "507692.980"
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -2674,20 +2529,6 @@ hinv_ncpu{domainname="DOMAINID",groupid="GROUPID",hostname="HOST",machineid="MAC
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@id": "1",
-                      "@indom": 12582921,
-                      "@pmid": 2143289405,
-                      "@semantics": "instant",
-                      "@type": "64-bit float",
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": "507688.98"
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -2900,20 +2741,6 @@ hinv_ncpu{domainname="DOMAINID",groupid="GROUPID",hostname="HOST",machineid="MAC
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@id": "1",
-                      "@indom": 12582921,
-                      "@pmid": 2143289405,
-                      "@semantics": "instant",
-                      "@type": "64-bit float",
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": "507689.98"
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -3126,20 +2953,6 @@ hinv_ncpu{domainname="DOMAINID",groupid="GROUPID",hostname="HOST",machineid="MAC
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@id": "1",
-                      "@indom": 12582921,
-                      "@pmid": 2143289405,
-                      "@semantics": "instant",
-                      "@type": "64-bit float",
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": "507690.98"
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -3352,20 +3165,6 @@ hinv_ncpu{domainname="DOMAINID",groupid="GROUPID",hostname="HOST",machineid="MAC
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@id": "1",
-                      "@indom": 12582921,
-                      "@pmid": 2143289405,
-                      "@semantics": "instant",
-                      "@type": "64-bit float",
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": "507691.98"
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {
@@ -3578,20 +3377,6 @@ hinv_ncpu{domainname="DOMAINID",groupid="GROUPID",hostname="HOST",machineid="MAC
             },
             "proc": {
               "psinfo": {
-                "age": {
-                  "@instances": [
-                    {
-                      "@id": "1",
-                      "@indom": 12582921,
-                      "@pmid": 2143289405,
-                      "@semantics": "instant",
-                      "@type": "64-bit float",
-                      "@unit": "sec",
-                      "name": "000001 /usr/lib/systemd/systemd --switched-root --system --deserialize 21",
-                      "value": "507692.98"
-                    }
-                  ]
-                },
                 "start_time": {
                   "@instances": [
                     {

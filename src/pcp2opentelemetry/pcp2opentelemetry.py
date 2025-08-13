@@ -20,7 +20,6 @@ from collections import OrderedDict
 import errno
 import time
 import sys
-import platform
 
 # Our imports
 import requests
@@ -562,10 +561,10 @@ class PCP2OPENTELEMETRY(object):
                     ucum_string += "."
                 first_unit = 0
                 prefix = UCUM_count_prefix(units.scaleCount)
-                if prefix == None:
+                if prefix is None:
                     ucum_string += "10^%u" % units.scaleCount
                 else:
-                    ucum_String += "%s{count}" % prefix
+                    ucum_string += "%s{count}" % prefix
                 if units.dimCount != 1:
                     ucum_string += "%d" % units.scaleCount
             else:

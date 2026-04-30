@@ -64,7 +64,7 @@ QA output created by 1169
 00:00:19     1.000      1.000
 == stdout/std test with extended header
 
-  archive: QAPATH/archives/dyninsts
+   source: QAPATH/archives/dyninsts (archive)
      host: localhost
  timezone: UTC+0
     start: Thu Jan  1 00:00:00 1970
@@ -252,7 +252,7 @@ QA output created by 1169
 00:00:19     1.000     1.000
 == stdout/std test with extended/repeating/separate header
 
-  archive: QAPATH/archives/dyninsts
+   source: QAPATH/archives/dyninsts (archive)
      host: localhost
  timezone: UTC+0
     start: Thu Jan  1 00:00:00 1970
@@ -479,7 +479,7 @@ QA output created by 1169
 00:00:19   sdb     1.000      1.000
 == stdout/colxrow test with extended header
 
-  archive: QAPATH/archives/dyninsts
+   source: QAPATH/archives/dyninsts (archive)
      host: localhost
  timezone: UTC+0
     start: Thu Jan  1 00:00:00 1970
@@ -737,7 +737,7 @@ QA output created by 1169
 00:00:19   sdb     1.000     1.000
 == stdout/colxrow test with extended/repeating/separate header
 
-  archive: QAPATH/archives/dyninsts
+   source: QAPATH/archives/dyninsts (archive)
      host: localhost
  timezone: UTC+0
     start: Thu Jan  1 00:00:00 1970
@@ -997,7 +997,7 @@ Time,"disk.dev.read-sdb(count/s)","disk.dev.write-sdb(count/s)"
 1970-01-01 00:00:19,1.000,1.000
 == csv test with extended header
 #
-#  archive: QAPATH/archives/dyninsts
+#   source: QAPATH/archives/dyninsts (archive)
 #     host: localhost
 # timezone: UTC+0
 #    start: Thu Jan  1 00:00:00 1970
@@ -1071,7 +1071,7 @@ Time,"disk.dev.read-sdb(count/s)","disk.dev.write-sdb(count/s)"
 1970-01-01 00:00:19,1.000,1.000
 == csv test with extended/repeating header
 #
-#  archive: QAPATH/archives/dyninsts
+#   source: QAPATH/archives/dyninsts (archive)
 #     host: localhost
 # timezone: UTC+0
 #    start: Thu Jan  1 00:00:00 1970
@@ -1113,7 +1113,7 @@ Time,"disk.dev.read-sdb","disk.dev.write-sdb"
 1970-01-01 00:00:19,1.000,1.000
 == csv test with extended/repeating header with units (-U)
 #
-#  archive: QAPATH/archives/dyninsts
+#   source: QAPATH/archives/dyninsts (archive)
 #     host: localhost
 # timezone: UTC+0
 #    start: Thu Jan  1 00:00:00 1970
@@ -1217,7 +1217,7 @@ Time,"disk.dev.read-sdb(count/s)","disk.dev.write-sdb(count/s)"
 00:00:19   sdb     1.000      1.000         ~
 == fixed header test with extended header
 
-  archive: QAPATH/archives/dyninsts
+   source: QAPATH/archives/dyninsts (archive)
      host: localhost
  timezone: UTC+0
     start: Thu Jan  1 00:00:00 1970
@@ -1373,7 +1373,7 @@ Time,"disk.dev.read-sdb(count/s)","disk.dev.write-sdb(count/s)"
 00:00:19   sdb     1.000     1.000         ~
 == fixed header test with extended/repeating/separate header
 
-  archive: QAPATH/archives/dyninsts
+   source: QAPATH/archives/dyninsts (archive)
      host: localhost
  timezone: UTC+0
     start: Thu Jan  1 00:00:00 1970

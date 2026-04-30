@@ -796,9 +796,9 @@ class PMReporter(object):
                 samples = "N/A"
 
         comm = "#" if self.output == OUTPUT_CSV else ""
+        source = self.source + " (archive)" if self.context.type == PM_CONTEXT_ARCHIVE else "pmcd (live)"
         self.writer.write(comm + "\n")
-        if self.context.type == PM_CONTEXT_ARCHIVE:
-            self.writer.write(comm + "  archive: " + self.source + "\n")
+        self.writer.write(comm + "   source: " + source + "\n")
         self.writer.write(comm + "     host: " + host + "\n")
         self.writer.write(comm + " timezone: " + timezone + "\n")
         self.writer.write(comm + "    start: " + time.asctime(time.localtime(origin)) + "\n")

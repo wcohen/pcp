@@ -1,6 +1,6 @@
 #!/usr/bin/env pmpython
 #
-# Copyright (C) 2015-2021 Marko Myllynen <myllynen@redhat.com>
+# Copyright (C) 2015-2026 Marko Myllynen <myllynen@redhat.com>
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -103,7 +103,7 @@ class PMReporter(object):
         self.globals = 1
         self.timestamp = 0
         self.samples = None # forever
-        self.interval = pmapi.timespec(1)       # 1 sec
+        self.interval = pmapi.timespec(1)      # 1 sec
         self.opts.pmSetOptionInterval(str(1))  # 1 sec
         self.delay = 0
         self.type = 0
@@ -750,6 +750,16 @@ class PMReporter(object):
                 samples = self.samples
             else:
                 duration = float(self.opts.pmGetOptionFinish()) - origin
+                # Avoid "too large value" with time.asctime(time.localtime(endtime))
+                now = datetime.now()
+                try:
+                    next_year = now.replace(year=now.year + 1)
+                except ValueError:
+                    # Handle Feb 29
+                    next_year = now.replace(year=now.year + 1, month=2, day=28)
+                year_secs = (next_year - now).total_seconds()
+                if duration > year_secs:
+                    duration = year_secs
                 samples = int(duration / float(self.interval) + 1)
                 samples = max(0, samples)
                 duration = (samples - 1) * float(self.interval)

@@ -945,13 +945,14 @@ class PMReporter(object):
                 if not self.dynamic_header:
                     if self.pmconfig.descs[i].contents.indom != PM_INDOM_NULL:
                         # Always mark metrics with instance domain
-                        name += "-"
+                        name += "["
                         if self.pmconfig.insts[i][1][j]:
                             # Append instance name when present
                             name += self.pmconfig.insts[i][1][j]
+                        name += "]"
                 else:
                     if self.pmconfig.descs[i].contents.indom != PM_INDOM_NULL:
-                        name += "-" + n[1]
+                        name += "[" + n[1] + "]"
                 if csv_unitinfo and unit_txt:
                     name += "(" + unit_txt + ")"
                 name_field = self.sanitize_csv_header_field(name)

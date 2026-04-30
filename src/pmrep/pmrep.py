@@ -758,8 +758,7 @@ class PMReporter(object):
                     # Handle Feb 29
                     next_year = now.replace(year=now.year + 1, month=2, day=28)
                 year_secs = (next_year - now).total_seconds()
-                if duration > year_secs:
-                    duration = year_secs
+                duration = min(duration, year_secs)
                 samples = int(duration / float(self.interval) + 1)
                 samples = max(0, samples)
                 duration = (samples - 1) * float(self.interval)

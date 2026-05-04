@@ -19,7 +19,6 @@ in the source distribution for its full text.
 
 #include "BatteryMeter.h"
 #include "CPUMeter.h"
-#include "ClockMeter.h"
 #include "DateTimeMeter.h"
 #include "DiskIOMeter.h"
 #include "DynamicColumn.h"
@@ -60,7 +59,7 @@ Platform* pcp;
 const ScreenDefaults Platform_defaultScreens[] = {
    {
       .name = "Main",
-      .columns = "PID USER PRIORITY NICE M_VIRT M_RESIDENT M_SHARE STATE PERCENT_CPU PERCENT_MEM TIME Command",
+      .columns = "PID USER PRIORITY NICE M_VIRT M_RESIDENT M_PRIV STATE PERCENT_CPU PERCENT_MEM TIME Command",
       .sortKey = "PERCENT_CPU",
    },
    {
@@ -198,6 +197,8 @@ static const char* Platform_metricNames[] = {
    [PCP_MEM_SWAPCACHED] = "mem.util.swapCached",
    [PCP_MEM_SWAPTOTAL] = "mem.util.swapTotal",
    [PCP_MEM_SWAPFREE] = "mem.util.swapFree",
+   [PCP_SWAP_LENGTH] = "swap.length",
+   [PCP_SWAP_FREE] = "swap.free",
    [PCP_DISK_READB] = "disk.all.read_bytes",
    [PCP_DISK_WRITEB] = "disk.all.write_bytes",
    [PCP_DISK_ACTIVE] = "disk.all.avactive",
@@ -293,6 +294,19 @@ static const char* Platform_metricNames[] = {
 
 static void Platform_setRelease(void);
 
+#ifndef HAVE_PMTIMEVALTOTIMESPEC
+void pmtimevalTotimespec(struct timeval* tv, struct timespec* ts) {
+   ts->tv_sec = tv->tv_sec;
+   ts->tv_nsec = tv->tv_usec * 1000;
+}
+#endif
+
+#ifndef HAVE_PMTIMESPECTOREAL
+double pmtimespecToReal(const struct timespec* ts) {
+   return (double)ts->tv_sec + ((double)ts->tv_nsec / 1e9);
+}
+#endif
+
 #ifndef HAVE_PMLOOKUPDESCS
 /*
  * pmLookupDescs(3) exists in latest versions of libpcp (5.3.6+),
@@ -381,12 +395,12 @@ bool Platform_init(void) {
    pcp->descs = xCalloc(PCP_METRIC_COUNT, sizeof(pmDesc));
 
    if (opts.context == PM_CONTEXT_ARCHIVE) {
-      gettimeofday(&pcp->offset, NULL);
+      pmtimespecNow(&pcp->offset);
 #if PMAPI_VERSION >= 3
-      struct timeval start = { opts.start.tv_sec, (suseconds_t)(opts.start.tv_nsec / 1000) };
-      pmtimevalDec(&pcp->offset, &start);
+      pmtimespecDec(&pcp->offset, &opts.start);
 #else
-      pmtimevalDec(&pcp->offset, &opts.start);
+      struct timespec start = { .tv_sec = opts.start.tv_sec, .tv_nsec = 1000L * opts.start.tv_usec };
+      pmtimespecDec(&pcp->offset, &start);
 #endif
    }
 
@@ -903,14 +917,14 @@ CommandLineStatus Platform_getLongOption(int opt, ATTR_UNUSED int argc, char** a
    return STATUS_ERROR_EXIT;
 }
 
-void Platform_gettime_realtime(struct timeval* tv, uint64_t* msec) {
-   if (gettimeofday(tv, NULL) == 0) {
+void Platform_gettime_realtime(struct timespec* tv, uint64_t* msec) {
+   if (pmtimespecNow(tv) == 0) {
       /* shift by start offset to stay in lock-step with realtime (archives) */
-      if (pcp->offset.tv_sec || pcp->offset.tv_usec)
-         pmtimevalDec(tv, &pcp->offset);
-      *msec = ((uint64_t)tv->tv_sec * 1000) + ((uint64_t)tv->tv_usec / 1000);
+      if (pcp->offset.tv_sec || pcp->offset.tv_nsec)
+         pmtimespecDec(tv, &pcp->offset);
+      *msec = ((uint64_t)tv->tv_sec * 1000) + ((uint64_t)tv->tv_nsec / 1000000);
    } else {
-      memset(tv, 0, sizeof(struct timeval));
+      memset(tv, 0, sizeof(struct timespec));
       *msec = 0;
    }
 }

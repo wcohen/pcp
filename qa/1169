@@ -83,9 +83,17 @@ pmrep $log -p -u -o csv -1 -x -C   disk.dev.read disk.dev.write mem.util.used | 
 echo "== csv test with repeating header"
 pmrep $log -p -u -o csv -1 -E 3    disk.dev.read disk.dev.write mem.util.used | _archive_filter
 
-echo "== csv test with extended/repeating header"
-pmrep $log -p -u -o csv -1 -x -E 3 disk.dev.read disk.dev.write mem.util.used | _archive_filter
+echo "== csv test with repeating header with units"
+pmrep $log -p -u -o csv -1 -E 3 --csv-unit-info disk.dev.read disk.dev.write mem.util.used | _archive_filter
 
+echo "== csv test with units in header"
+pmrep $log -p -u -o csv -1      --csv-unit-info disk.dev.read disk.dev.write mem.util.used | _archive_filter
+
+echo "== csv test with extended/repeating header"
+pmrep $log -p -u -o csv -1 -x -E 3                 disk.dev.read disk.dev.write mem.util.used | _archive_filter
+
+echo "== csv test with extended/repeating header with units"
+pmrep $log -p -u -o csv -1 -x -E 3 --csv-unit-info disk.dev.read disk.dev.write mem.util.used | _archive_filter
 
 echo "== fixed header test"
 pmrep $log -p -u -X test -7            disk.dev.read disk.dev.write mem.util.used | _archive_filter

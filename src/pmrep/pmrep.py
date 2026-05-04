@@ -1,6 +1,6 @@
 #!/usr/bin/env pmpython
 #
-# Copyright (C) 2015-2021 Marko Myllynen <myllynen@redhat.com>
+# Copyright (C) 2015-2026 Marko Myllynen <myllynen@redhat.com>
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -77,7 +77,7 @@ class PMReporter(object):
         self.keys = ('source', 'output', 'derived', 'header', 'globals',
                      'samples', 'interval', 'type', 'precision', 'daemonize',
                      'timestamp', 'unitinfo', 'colxrow', 'separate_header', 'fixed_header',
-                     'delay', 'width', 'delimiter', 'extcsv', 'width_force',
+                     'delay', 'width', 'delimiter', 'extcsv', 'width_force', 'csv_unitinfo',
                      'extheader', 'repeat_header', 'timefmt', 'interpol',
                      'dynamic_header', 'overall_rank', 'overall_rank_alt', 'sort_metric',
                      'count_scale', 'space_scale', 'time_scale', 'version',
@@ -103,7 +103,7 @@ class PMReporter(object):
         self.globals = 1
         self.timestamp = 0
         self.samples = None # forever
-        self.interval = pmapi.timespec(1)       # 1 sec
+        self.interval = pmapi.timespec(1)      # 1 sec
         self.opts.pmSetOptionInterval(str(1))  # 1 sec
         self.delay = 0
         self.type = 0
@@ -156,6 +156,7 @@ class PMReporter(object):
         self.localtz = None
         self.prev_ts = None
         self.runtime = -1
+        self.csv_unitinfo = 0
         self.found_insts = []
         self.prev_insts = None
         self.static_header = 1
@@ -203,7 +204,8 @@ class PMReporter(object):
 
         opts.pmSetLongOptionHeader("Reporting options")
         opts.pmSetLongOption("no-header", 0, "H", "", "omit headers")
-        opts.pmSetLongOption("no-unit-info", 0, "U", "", "omit unit info from headers")
+        opts.pmSetLongOption("no-unit-info", 0, "U", "", "omit unit info from stdout headers")
+        opts.pmSetLongOption("csv-unit-info", 0, "", "", "include unit info in CSV headers")
         opts.pmSetLongOption("no-inst-info", 0, "", "", "omit instance info from headers")
         opts.pmSetLongOption("no-globals", 0, "G", "", "omit global metrics")
         opts.pmSetLongOption("timestamps", 0, "p", "", "print timestamps")
@@ -269,6 +271,8 @@ class PMReporter(object):
             self.daemonize = 1
         elif opt == 'include-texts':
             self.include_texts = 1
+        elif opt == 'csv-unit-info':
+            self.csv_unitinfo = 1
         elif opt == 'no-inst-info':
             self.instinfo = 0
         elif opt == 'K':
@@ -745,6 +749,15 @@ class PMReporter(object):
                 samples = self.samples
             else:
                 duration = float(self.opts.pmGetOptionFinish()) - origin
+                # Avoid "too large value" with time.asctime(time.localtime(endtime))
+                now = datetime.now()
+                try:
+                    next_year = now.replace(year=now.year + 1)
+                except ValueError:
+                    # Handle Feb 29
+                    next_year = now.replace(year=now.year + 1, month=2, day=28)
+                year_secs = (next_year - now).total_seconds()
+                duration = min(duration, year_secs)
                 samples = int(duration / float(self.interval) + 1)
                 samples = max(0, samples)
                 duration = (samples - 1) * float(self.interval)
@@ -781,9 +794,9 @@ class PMReporter(object):
                 samples = "N/A"
 
         comm = "#" if self.output == OUTPUT_CSV else ""
+        source = self.source + " (archive)" if self.context.type == PM_CONTEXT_ARCHIVE else "pmcd (live)"
         self.writer.write(comm + "\n")
-        if self.context.type == PM_CONTEXT_ARCHIVE:
-            self.writer.write(comm + "  archive: " + self.source + "\n")
+        self.writer.write(comm + "   source: " + source + "\n")
         self.writer.write(comm + "     host: " + host + "\n")
         self.writer.write(comm + " timezone: " + timezone + "\n")
         self.writer.write(comm + "    start: " + time.asctime(time.localtime(origin)) + "\n")
@@ -922,19 +935,21 @@ class PMReporter(object):
         for i, metric in enumerate(self.metrics):
             for j, n in self.get_results_iter(i, metric, results):
                 name = metric
-                if not self.dynamic_header:
-                    if self.pmconfig.descs[i].contents.indom != PM_INDOM_NULL:
-                        # Always mark metrics with instance domain
-                        name += "-"
-                        if self.pmconfig.insts[i][1][j]:
-                            # Append instance name when present
-                            name += self.pmconfig.insts[i][1][j]
-                else:
-                    if self.pmconfig.descs[i].contents.indom != PM_INDOM_NULL:
-                        name += "-" + n[1]
-                if self.delimiter:
-                    name = name.replace(self.delimiter, " ")
-                name = name.replace("\n", " ").replace("\"", " ")
+                if self.instinfo:
+                    if not self.dynamic_header:
+                        if self.pmconfig.descs[i].contents.indom != PM_INDOM_NULL:
+                            # Always mark metrics with instance domain
+                            name += "["
+                            if self.pmconfig.insts[i][1][j]:
+                                # Append instance name when present
+                                name += self.pmconfig.insts[i][1][j]
+                            name += "]"
+                    else:
+                        if self.pmconfig.descs[i].contents.indom != PM_INDOM_NULL:
+                            name += "[" + n[1] + "]"
+                if self.csv_unitinfo and self.metrics[metric][2][0] is not None:
+                    name += "(" + self.metrics[metric][2][0] + ")"
+                name = self.sanitize_csv_header_item(name)
                 self.writer.write(self.delimiter + "\"" + name + "\"")
                 if self.include_labels:
                     ins = j if not self.dynamic_header else n[0]
@@ -942,7 +957,7 @@ class PMReporter(object):
                     if self.delimiter:
                         repl = ";" if self.delimiter == "," else ","
                         labels = labels.replace(self.delimiter, repl)
-                    labels = labels.replace("\n", " ").replace("\"", " ")
+                    labels = self.sanitize_csv_header_item(labels)
                     self.writer.write(self.delimiter + "\"" + labels + "\"")
         self.writer.write("\n")
 
@@ -1181,6 +1196,12 @@ class PMReporter(object):
             else:
                 value = value.replace(self.delimiter, " ")
         return value
+
+    def sanitize_csv_header_item(self, item):
+        """ Sanitize CSV header item """
+        if self.delimiter:
+            item = item.replace(self.delimiter, " ")
+        return item.replace("\n", " ").replace("\"", " ")
 
     def write_csv(self, timestamp):
         """ Write results in CSV format """

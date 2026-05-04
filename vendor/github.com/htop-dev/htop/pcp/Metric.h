@@ -73,6 +73,8 @@ typedef enum Metric_ {
    PCP_MEM_SWAPCACHED,          /* mem.util.swapCached */
    PCP_MEM_SWAPTOTAL,           /* mem.util.swapTotal */
    PCP_MEM_SWAPFREE,            /* mem.util.swapFree */
+   PCP_SWAP_LENGTH,             /* swap.length */
+   PCP_SWAP_FREE,               /* swap.free */
    PCP_DISK_READB,              /* disk.all.read_bytes */
    PCP_DISK_WRITEB,             /* disk.all.write_bytes */
    PCP_DISK_ACTIVE,             /* disk.all.avactive */
@@ -174,7 +176,7 @@ bool Metric_enabled(Metric metric);
 
 void Metric_enableThreads(void);
 
-bool Metric_fetch(struct timeval* timestamp);
+bool Metric_fetch(struct timespec* timestamp);
 
 bool Metric_iterate(Metric metric, int* instp, int* offsetp, size_t entrylen);
 

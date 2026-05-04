@@ -1,6 +1,6 @@
 '\" t
 .\"
-.\" Copyright (C) 2015-2021 Marko Myllynen <myllynen@redhat.com>
+.\" Copyright (C) 2015-2026 Marko Myllynen <myllynen@redhat.com>
 .\" Copyright (c) 2016-2018 Red Hat.
 .\"
 .\" This program is free software; you can redistribute it and/or modify it
@@ -29,6 +29,7 @@
 [\fB\-b\fP|\fB\-B\fP \fIspace-scale\fP]
 [\fB\-c\fP \fIconfig\fP]
 [\fB\-\-container\fP \fIcontainer\fP]
+[\fB\-\-csv\-unit\-info\fP]
 [\f3\-D\f1 \f2debug\f1]
 [\fB\-\-daemonize\fP]
 [\fB\-e\fP \fIderived\fP]
@@ -452,6 +453,14 @@ Fetch performance metrics from the specified
 either local or remote (see
 .BR \-h ).
 .TP
+\fB\-\-csv\-unit\-info\fR
+Append unit strings to metric names in the CSV header using the form
+.I "metric(unit)"
+or
+.IR "metric[inst](unit)" .
+See also
+.BR \-k .
+.TP
 \fB\-C\fR, \fB\-\-check\fR
 Exit before reporting any values, but after parsing the configuration
 and metrics and printing possible headers.
@@ -651,7 +660,7 @@ is asked to report may be considered ``incompatible'' for a number of reasons:
 a metric type that is not supported by
 .B pmrep
 (e.g. PM_TYPE_AGGREGATE or PM_TYPE_EVENT),
-or a derived metric definition that contains semantic errors, 
+or a derived metric definition that contains semantic errors,
 or the metric is known in the PMNS but the metric's metadata is not available.
 By default,
 .B pmrep
@@ -699,6 +708,8 @@ and
 \fB\-k\fR, \fB\-\-extended\-csv\fR
 Write extended CSV output, similar to
 .BR sadf (1).
+See also
+.BR \-\-csv\-unit\-info .
 .TP
 \fB\-K\fR \fIspec\fR, \fB\-\-spec\-local\fR=\fIspec\fR
 When fetching metrics from a local context (see
@@ -981,7 +992,7 @@ to disable).
 .RE
 .TP
 \fB\-U\fR, \fB\-\-no\-unit\-info\fR
-Omit unit information from headers.
+Omit unit information from \fIstdout\fP headers.
 .TP
 \fB\-v\fR, \fB\-\-omit\-flat\fR
 Report only set-valued metrics with instances (e.g. disk.dev.read) and
@@ -1323,4 +1334,3 @@ and
 .\" +ok+ sp {from .sp in troff macro} un {from (un)available)}
 .\" +ok+ Dderive {from -Dderive}
 .\" +ok+ PCP_DISCRETE_ONCE {from pmrep-only env var}
-

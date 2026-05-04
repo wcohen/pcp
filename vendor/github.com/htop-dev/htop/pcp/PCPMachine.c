@@ -16,7 +16,7 @@ in the source distribution for its full text.
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>
-#include <sys/time.h>
+#include <time.h>
 
 #include "Machine.h"
 #include "Macros.h"
@@ -87,7 +87,11 @@ static void PCPMachine_updateLinuxMemoryInfo(PCPMachine* this) {
       this->memValue[MEMORY_CLASS_AVAILABLE] = freeMem;
    if (Metric_values(PCP_MEM_SWAPFREE, &value, 1, PM_TYPE_U64) != NULL)
       swapFreeMem = value.ull;
+   else if (Metric_values(PCP_SWAP_FREE, &value, 1, PM_TYPE_U64) != NULL)
+      swapFreeMem = value.ull;
    if (Metric_values(PCP_MEM_SWAPTOTAL, &value, 1, PM_TYPE_U64) != NULL)
+      super->totalSwap = value.ull;
+   else if (Metric_values(PCP_SWAP_LENGTH, &value, 1, PM_TYPE_U64) != NULL)
       super->totalSwap = value.ull;
    if (Metric_values(PCP_MEM_SWAPCACHED, &value, 1, PM_TYPE_U64) != NULL)
       super->cachedSwap = value.ull;
@@ -95,6 +99,8 @@ static void PCPMachine_updateLinuxMemoryInfo(PCPMachine* this) {
 }
 
 static void PCPMachine_updateDarwinMemoryInfo(PCPMachine* this, Settings* settings) {
+   Machine* super = &this->super;
+   unsigned long long int freeSwap = 0;
    unsigned long long int activeMem = 0;
    unsigned long long int externalMem = 0;
    unsigned long long int purgeableMem = 0;
@@ -126,6 +132,12 @@ static void PCPMachine_updateDarwinMemoryInfo(PCPMachine* this, Settings* settin
       this->memValue[MEMORY_CLASS_COMPRESSED] = value.ull;
    if (Metric_values(PCP_MEM_INACTIVE, &value, 1, PM_TYPE_U64) != NULL)
       this->memValue[MEMORY_CLASS_INACTIVE] = value.ull;
+
+   if (Metric_values(PCP_SWAP_FREE, &value, 1, PM_TYPE_U64) != NULL)
+      freeSwap = value.ull;
+   if (Metric_values(PCP_SWAP_LENGTH, &value, 1, PM_TYPE_U64) != NULL)
+      super->totalSwap = value.ull;
+   super->usedSwap = super->totalSwap - freeSwap;
 }
 
 static void PCPMachine_updateMemoryInfo(Machine* super) {
@@ -352,12 +364,12 @@ void Machine_scan(Machine* super) {
    Metric_enable(PCP_PROC_SMAPS_SWAP, host->smaps_flag);
    Metric_enable(PCP_PROC_SMAPS_SWAPPSS, host->smaps_flag);
 
-   struct timeval timestamp;
+   struct timespec timestamp;
    if (Metric_fetch(&timestamp) != true)
       return;
 
    double sample = host->timestamp;
-   host->timestamp = pmtimevalToReal(&timestamp);
+   host->timestamp = pmtimespecToReal(&timestamp);
    host->period = (host->timestamp - sample) * 100;
 
    PCPMachine_scan(host);
@@ -369,9 +381,9 @@ Machine* Machine_new(UsersTable* usersTable, uid_t userId) {
 
    Machine_init(super, usersTable, userId);
 
-   struct timeval timestamp;
-   gettimeofday(&timestamp, NULL);
-   this->timestamp = pmtimevalToReal(&timestamp);
+   struct timespec timestamp;
+   pmtimespecNow(&timestamp);
+   this->timestamp = pmtimespecToReal(&timestamp);
 
    this->sys = SYSTEM_NAME_UNKNOWN;
    PCPMachine_updateSystemName(this);

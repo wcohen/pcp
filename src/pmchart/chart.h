@@ -280,7 +280,7 @@ public:
     virtual ~ChartCurve(void) { }
 
     virtual QwtGraphic legendIcon( int index, const QSizeF &) const;
-    void setLegendColor(QColor color) { legendColor = color; }
+    void setLegendColor(QColor color) { legendColor = color; legendChanged(); }
 
 private:
     QColor legendColor;

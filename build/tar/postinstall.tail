@@ -43,6 +43,10 @@ then
     SYSTEMCTL="echo + systemctl"
     RC_UPDATE="echo + rc-update"
     MAKEWHATIS="echo + makewhatis"
+    ADDUSER="echo + adduser"
+    USERADD="echo + useradd"
+    GROUPADD="echo + groupadd"
+    RCCTL="echo + rcctl"
     LDCONFIG="echo + ldconfig"
 else
     show_me=false
@@ -54,6 +58,10 @@ else
     SYSTEMCTL=systemctl
     RC_UPDATE=rc-update
     MAKEWHATIS=makewhatis
+    ADDUSER=adduser
+    USERADD=useradd
+    GROUPADD=groupadd
+    RCCTL=rcctl
     LDCONFIG=ldconfig
 fi
 
@@ -160,7 +168,7 @@ then
 	else
 	    if which groupadd >/dev/null 2>&1
 	    then
-		groupadd $sys_acc pcp
+		$GROUPADD $sys_acc pcp
 	    else
 		if [ "$PCP_PLATFORM" = freebsd ]
 		then
@@ -177,15 +185,15 @@ then
 	else
 	    if which useradd >/dev/null 2>&1
 	    then
-		useradd -c "Performance Co-Pilot" -g pcp -d "$PCP_VAR_DIR" $no_home_dir $sys_acc -s $nologin pcp
+		$USERADD -c "Performance Co-Pilot" -g pcp -d "$PCP_VAR_DIR" $no_home_dir $sys_acc -s $nologin pcp
 	    elif which adduser >/dev/null 2>&1
 	    then
 		echo "pcp::::::Performance Co-Pilot:$PCP_VAR_DIR::" \
-		| adduser -f - -w no
-	    else
+		| $ADDUSER -f - -w no
+		else
 		echo "postinstall: Error: don't know how to add user \"pcp\""
 		exit
-	    fi
+		fi
 	fi
     fi
 
@@ -201,7 +209,7 @@ then
 	else
 	    if which groupadd >/dev/null 2>&1
 	    then
-		groupadd $sys_acc pcpqa
+		$GROUPADD $sys_acc pcpqa
 	    else
 		if [ "$PCP_PLATFORM" = freebsd ]
 		then
@@ -218,13 +226,13 @@ then
 	else
 	    if which useradd >/dev/null 2>&1
 	    then
-		useradd -c "PCP Quality Assurance" -g pcpqa -d "$PCP_VAR_DIR"/testsuite $no_home_dir $sys_acc -s $bash pcpqa
+		$USERADD -c "PCP Quality Assurance" -g pcpqa -d "$PCP_VAR_DIR"/testsuite $no_home_dir $sys_acc -s $bash pcpqa
 	    elif which adduser >/dev/null 2>&1
 	    then
 		# no bash for default FreeBSD
 		bash=`which sh`
 		echo "pcpqa::::::PCP Quality Assurance:$PCP_VAR_DIR/testsuite:$bash:" \
-		| adduser -f - -w no
+		| $ADDUSER -f - -w no
 	    else
 		echo "postinstall: Error: don't know how to add user \"pcpqa\""
 		exit
@@ -493,8 +501,8 @@ else
 	    case "$svc"
 	    in
 		pmcd|pmlogger|pmie|pmproxy)
-		    rcctl enable $svc
-		    rcctl start $svc
+		    $RCCTL enable $svc
+		    $RCCTL start $svc
 		    ;;
 	    esac
 	fi

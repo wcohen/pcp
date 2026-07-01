@@ -59,7 +59,7 @@ Chart::Chart(Tab *chartTab, QWidget *parent) : QwtPlot(parent), Gadget(this)
     QwtLegend *legend = new QwtLegend;
     insertLegend(legend, QwtPlot::BottomLegend);
     legend->setDefaultItemMode(QwtLegendData::Checkable);
-    legend->setFont(*globalFont);
+    legend->contentsWidget()->setFont(*globalFont);
     connect(legend, SIGNAL(checked(const QVariant &, bool, int)),
 		    SLOT(showItem(const QVariant &, bool)));
     setLegendVisible(true);
@@ -886,6 +886,7 @@ Chart::setLegendVisible(bool on)
 
 	    legend->setDefaultItemMode(QwtLegendData::Checkable);
 	    insertLegend(legend, QwtPlot::BottomLegend);
+	    legend->contentsWidget()->setFont(*globalFont);
 	    // force each Legend item to "checked" state matching
 	    // the initial plotting state
 	    for (int i = 0; i < my.items.size(); i++)

@@ -43,6 +43,7 @@ then
     SYSTEMCTL="echo + systemctl"
     RC_UPDATE="echo + rc-update"
     MAKEWHATIS="echo + makewhatis"
+    LDCONFIG="echo + ldconfig"
 else
     show_me=false
     RM=rm
@@ -53,6 +54,7 @@ else
     SYSTEMCTL=systemctl
     RC_UPDATE=rc-update
     MAKEWHATIS=makewhatis
+    LDCONFIG=ldconfig
 fi
 
 _cd()
@@ -506,6 +508,14 @@ if which makewhatis >/dev/null 2>&1
 then
     echo "Rebuilding whatis DB in the background"
     $MAKEWHATIS &
+fi
+
+# optionally update the shared library cache
+#
+if which ldconfig >/dev/null 2>&1
+then
+    echo "Rebuilding shared library cache"
+    $LDCONFIG
 fi
 
 # cull any old files or directories that used to be in the distribution

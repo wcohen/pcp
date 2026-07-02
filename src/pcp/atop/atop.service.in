@@ -6,7 +6,7 @@ BindsTo=atop-daily.timer
 [Service]
 Type=simple
 Environment="LOGOPTS="
-Environment="LOGINTERVAL=600"
+Environment="LOGINTERVAL=60"
 Environment="LOGGENERATIONS=28"
 Environment="LOGPATH=/var/log/atop"
 Environment="LOGVOLSIZE=100m"

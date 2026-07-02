@@ -523,7 +523,18 @@ fi
 if which ldconfig >/dev/null 2>&1
 then
     echo "Rebuilding shared library cache"
-    $LDCONFIG
+    libs="$PCP_LIB_DIR"
+    [ "$PCP_LIB32_DIR" != "$PCP_LIB_DIR" ] && libs="$libs $PCP_LIB32_DIR"
+    if ldconfig '-?' 2>&1 | grep -q '.-m'
+    then
+	# we have a -m (merge) option, use that
+	#
+	$LDCONFIG -m $libs
+    else
+	# else rebuild everything
+	#
+	$LDCONFIG $libs
+    fi
 fi
 
 # cull any old files or directories that used to be in the distribution

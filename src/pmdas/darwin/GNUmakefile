@@ -28,6 +28,8 @@ LOCALCONF_LINE	= $(PMCDCONF_LINE)
 MAN_SECTION	= 1
 MAN_PAGES	= pmda$(IAM).$(MAN_SECTION)
 MAN_DEST	= $(PCP_MAN_DIR)/man$(MAN_SECTION)
+REWRITEDIR	= $(PCP_SYSCONF_DIR)/pmlogrewrite
+REWRITEVARDIR	= $(PCP_VAR_DIR)/config/pmlogrewrite
 
 CFILES		= pmda.c kernel.c disk.c network.c nfs.c vfs.c udp.c icmp.c ipv6.c sockstat.c tcpconn.c tcp.c vmstat.c filesys.c cpu.c loadavg.c cpuload.c uname.c version.c gpu.c gpu_iokit.c ipc.c power.c apfs.c smc.c thermal.c metrics.c login.c
 HFILES		= disk.h network.h nfs.h vfs.h udp.h icmp.h ipv6.h sockstat.h tcpconn.h tcp.h vmstat.h filesys.h cpu.h loadavg.h cpuload.h uname.h gpu.h ipc.h power.h apfs.h smc.h thermal.h metrics.h login.h
@@ -56,6 +58,7 @@ install: build-me
 	$(INSTALL) -m 644 -t $(PMDATMPDIR) domain.h help.dir help.pag $(PMDAADMDIR)
 	$(INSTALL) -m 755 -t $(PMDATMPDIR) $(LIBTARGET) $(CMDTARGET) $(PMDAADMDIR)
 	$(INSTALL) -m 644 -t $(PCP_PMNS_DIR)/root_darwin root_darwin $(PCP_PMNSADM_DIR)/root_darwin
+	$(INSTALL) -m 644 -t $(REWRITEVARDIR)/$(IAM).conf rewrite.conf $(REWRITEDIR)/$(IAM).conf
 	@$(INSTALL_MAN)
 else
 build-me:

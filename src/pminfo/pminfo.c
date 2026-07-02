@@ -812,7 +812,10 @@ mydesc(pmDesc *desc, int oneline)
 
     if (desc->pmid == PM_ID_NULL) {
 	/* no metadata, reason reported earlier */
-	printf("    Metadata unavailable\n");
+	if (oneline)
+	    printf("\tMetadata unavailable\n");
+	else
+	    printf("    Metadata unavailable\n");
 	return;
     }
 

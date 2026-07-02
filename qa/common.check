@@ -2142,6 +2142,7 @@ _run_helgrind()
 # Outputs suitable message to stdout if it's not in range.
 #
 # A verbose option, -v, may be used as the LAST argument
+# A debug option, -d, may be used as the LAST argument (=> -v also)
 # 
 # e.g. 
 # foo: 0.0298 = 0.03 +/- 5%
@@ -2153,6 +2154,9 @@ _run_helgrind()
 # foo: 0.0298 = 0.03 -0.01 +0.002
 # _within_tolerance "foo" 0.0298 0.03 0.01 0.002
 #
+# same with debug and verbose
+# _within_tolerance "foo" 0.0298 0.03 0.01 0.002 -d
+#
 # foo: verbose output of 0.0298 = 0.03 +/- 5% 
 # _within_tolerance "foo" 0.0298 0.03 5% -v 
 
@@ -2163,7 +2167,7 @@ _within_tolerance()
   __correct_val=$3
   __mintol=$4
   __maxtol=$__mintol
-  __verbose=0
+  __verbose=false
   __debug=false
 
   # maxtol arg is optional
@@ -2172,14 +2176,25 @@ _within_tolerance()
   then 
      if [ "$5" = "-v" ]
      then
-	__verbose=1
+	__verbose=true
+     elif [ "$5" = "-d" ]
+     then
+	 __debug=true
+	 __verbose=true
      else
         __maxtol=$5
      fi
   fi
   if [ $# -ge 6 ]
   then
-     [ "$6" = "-v" ] && __verbose=1
+     if [ "$6" = "-v" ]
+     then
+	 __verbose=true
+     elif [ "$6" = "-d" ]
+     then
+	 __debug=true
+	 __verbose=true
+    fi
   fi
 
   # find min with or without %
@@ -2188,7 +2203,16 @@ _within_tolerance()
   then 
       __min=`echo "scale=5; $__correct_val-$__mintolerance" | bc`
   else
-      __min=`echo "scale=5; $__correct_val-$__mintolerance*0.01*$__correct_val" | bc`
+      case "$__correct_val"
+      in
+	  -*)
+	      # correct_val is negative
+	      __min=`echo "scale=5; $__correct_val+$__mintolerance*0.01*$__correct_val" | bc`
+	      ;;
+	  *)
+	      __min=`echo "scale=5; $__correct_val-$__mintolerance*0.01*$__correct_val" | bc`
+	      ;;
+      esac
   fi
 
   # find max with or without %
@@ -2197,11 +2221,19 @@ _within_tolerance()
   then 
       __max=`echo "scale=5; $__correct_val+$__maxtolerance" | bc`
   else
-      __max=`echo "scale=5; $__correct_val+$__maxtolerance*0.01*$__correct_val" | bc`
+      case "$__correct_val"
+      in
+	  -*)
+	      # correct_val is negative
+	      __max=`echo "scale=5; $__correct_val-$__maxtolerance*0.01*$__correct_val" | bc`
+	      ;;
+	  *)
+	      __max=`echo "scale=5; $__correct_val+$__maxtolerance*0.01*$__correct_val" | bc`
+	      ;;
+      esac
   fi
 
-  $__debug && echo "min = $__min"
-  $__debug && echo "max = $__max"
+  $__debug && echo "_within_tolerance: __min=$__min __given_val=$__given_val __max=$__max"
 
   cat <<EOF >$tmp._bc.1
 scale=5;
@@ -2217,21 +2249,23 @@ EOF
 
   __above_min=`bc <$tmp._bc.1`
   __below_max=`bc <$tmp._bc.2`
+  $__debug && echo "_within_tolerance: __above_min=$__above_min __below_max=$__below_max"
 
   __in_range=`expr $__above_min \& $__below_max` 
 
   # fix up min, max precision for output
-  # can vary for 5.3, 6.2
+  # can vary between IRIX 5.3 and 6.2 [historically quaint note]
+  #
   __min=`echo $__min | sed -e 's/\(.\)0*$/\1/'` # get rid of trailing zeroes
   __max=`echo $__max | sed -e 's/\(.\)0*$/\1/'` # get rid of trailing zeroes
 
   if [ $__in_range -eq 1 ] 
   then
-	[ $__verbose -eq 1 ] && echo $__name is in range
+	$__verbose && echo $__name is in range
 	return 0
   else
-	[ $__verbose -eq 1 ] && echo $__name has value of $__given_val
-	[ $__verbose -eq 1 ] && echo $__name is NOT in range $__min .. $__max	
+	$__verbose && echo $__name has value of $__given_val
+	$__verbose && echo $__name is NOT in range $__min .. $__max	
 	return 1
   fi
 }

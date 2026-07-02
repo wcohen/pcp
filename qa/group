@@ -238,6 +238,7 @@ pmda.bpf
 pmda.bpftrace
 pmda.cifs
 pmda.cisco
+pmda.darwin
 pmda.db2
 pmda.dm
 pmda.denki
@@ -265,6 +266,7 @@ pmda.logger
 pmda.lustre
 pmda.mailq
 pmda.memcache
+#pmda.mic		# note this group has been retired Jun 2026
 pmda.mmv
 pmda.mongodb
 pmda.mounts
@@ -297,6 +299,7 @@ pmda.redis
 pmda.resctrl
 pmda.rds
 pmda.rocestat
+#pmda.roomtemp		# note this group has been retired Jun 2026
 pmda.root
 #pmda.rpm		# note this group has been retired
 pmda.rsyslog
@@ -2223,8 +2226,8 @@ suse
 1673 pmda.bpf local
 1674 pmda.amdgpu pmprobe local
 1675 pmlogrewrite pmda.nvidia local
-1676:reserved pmlogrewrite pmda.amdgpu
-1677:reserved pmlogrewrite pmda.amdgpu
+1676 pmlogrewrite pmda.darwin local
+1677 pmlogrewrite pmprobe pmda.darwin local
 1678 pmda.opentelemetry local python
 1679 pmlogconf local
 1680 pmda.openvswitch local

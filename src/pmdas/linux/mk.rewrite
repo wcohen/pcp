@@ -75,8 +75,8 @@ metric mem.ksm.sleep_time { type -> $KERNEL_ULONG }
 metric disk.dm.read { type -> $KERNEL_ULONG }
 metric disk.dm.write { type -> $KERNEL_ULONG }
 metric disk.dm.read_bytes { type -> $KERNEL_ULONG }
-metric disk.dm.write_bytes{ type -> $KERNEL_ULONG }
-metric disk.dm.total_bytes{ type -> $KERNEL_ULONG }
+metric disk.dm.write_bytes { type -> $KERNEL_ULONG }
+metric disk.dm.total_bytes { type -> $KERNEL_ULONG }
 metric disk.dm.blkread { type -> $KERNEL_ULONG }
 metric disk.dm.blkwrite { type -> $KERNEL_ULONG }
 metric disk.dm.read_merge { type -> $KERNEL_ULONG }
@@ -84,8 +84,8 @@ metric disk.dm.write_merge { type -> $KERNEL_ULONG }
 metric disk.md.read { type -> $KERNEL_ULONG }
 metric disk.md.write { type -> $KERNEL_ULONG }
 metric disk.md.read_bytes { type -> $KERNEL_ULONG }
-metric disk.md.write_bytes{ type -> $KERNEL_ULONG }
-metric disk.md.total_bytes{ type -> $KERNEL_ULONG }
+metric disk.md.write_bytes { type -> $KERNEL_ULONG }
+metric disk.md.total_bytes { type -> $KERNEL_ULONG }
 metric disk.md.blkread { type -> $KERNEL_ULONG }
 metric disk.md.blkwrite { type -> $KERNEL_ULONG }
 metric disk.md.read_merge { type -> $KERNEL_ULONG }

@@ -91,10 +91,10 @@ get_battery_details_from_iokit(powerstats_t *stats)
         int temp_hundredths = get_cf_int(properties, CFSTR("Temperature"), 0);
         if (temp_hundredths > 27315) {
             /* Convert from 0.01K to C: subtract 273.15 * 100 = 27315 */
-            stats->temperature = (temp_hundredths - 27315) / 100;
+            stats->temperature = (float)(temp_hundredths - 27315) / 100;
         } else {
             /* Convert from 0.01C to C */
-            stats->temperature = temp_hundredths / 100;
+            stats->temperature = (float)temp_hundredths / 100;
         }
 
         /* Voltage (already in mV) */

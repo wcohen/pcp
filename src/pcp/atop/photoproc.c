@@ -154,7 +154,7 @@ proccmd(struct tstat *task, int pid, char *name, pmResult *rp, pmDesc *dp, int o
 		}
 	}
 
-	pmstrncpy(task->gen.cmdline, CMDLEN-env_len, pc);
+	safe_strcpy(task->gen.cmdline, pc, CMDLEN-env_len);
 }
 
 /*
@@ -194,7 +194,7 @@ update_task(struct tstat *task, int pid, char *name, pmResult *rp, pmDesc *dp, i
 			    sizeof cgname, pid, offset);
 	if (cgname[0] == ':')
 	{
-		pmstrncpy(task->gen.cgpath, sizeof(task->gen.cgpath), &cgname[1]);
+		safe_strcpy(task->gen.cgpath, &cgname[1], sizeof(task->gen.cgpath));
 		supportflags |= CGROUPV2;
 	}
 
@@ -439,7 +439,7 @@ photoproc(struct tstat **tasks, unsigned long *taskslen)
 
 	thread_cpu_accumulation(tasks, count);
 
-	if (supportflags & NETATOPBPF)
+	if (supportflags & NETBPF)
 		netbpfproc_update_tasks(tasks, count);
 
 	if (pmDebugOptions.appl0)

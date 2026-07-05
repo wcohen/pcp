@@ -897,7 +897,7 @@ static pmdaMetric metrictab[] = {
 /* bat.energy_now */
 	{ NULL,
 	{ PMDA_PMID(1,0), PM_TYPE_DOUBLE, BAT_ENERGYNOW_INDOM, PM_SEM_INSTANT,
-	PMDA_PMUNITS(0,0,0,0,0,0) }, },
+	PMDA_EXTRAUNITS(0, 1, 0, 0, PM_TIME_HOUR, 0, PM_UNIT_POWER, PM_POWER_W) }, },
 /* bat.power_now */
 	{ NULL,
 	{ PMDA_PMID(1,1), PM_TYPE_DOUBLE, BAT_POWERNOW_INDOM, PM_SEM_INSTANT,

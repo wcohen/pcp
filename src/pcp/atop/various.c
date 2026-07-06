@@ -1842,7 +1842,8 @@ rawwrite_open(const char *name)
 		fprintf(fp, "Archive: %s %s-%s\n", host, host, datebuf);
 		fclose(fp);
 		pmsprintf(host, sizeof host, "%s/Latest", name);
-		rename(path, host);
+		if (rename(path, host) < 0)
+			unlink(path);
 	}
 
 	/* sidecar and zoneinfo written in rawwrite_init_sidecar() after

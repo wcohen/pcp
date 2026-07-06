@@ -1459,14 +1459,7 @@ fetch_metrics(const char *purpose, int nmetrics, pmID *pmids, pmResult **result)
 	}
 
 	curtime_ts = curtime;
-	if (!rawreadflag && fetchmode != PM_MODE_LIVE)
-		fetchmode = PM_MODE_LIVE;
-	if (fetchmode != PM_MODE_LIVE ||
-	    (sts = pmSetMode(fetchmode, &curtime_ts, &fetchstep)) >= 0)
-		sts = 0;	/* local context: skip pmSetMode */
-	else if (sts == PM_ERR_MODE)
-		sts = 0;	/* local context returns PM_ERR_MODE; benign */
-	else
+	if ((sts = pmSetMode(fetchmode, &curtime_ts, &fetchstep)) < 0)
 	{
 		fprintf(stderr, "%s: %s setmode: %s\n",
 			pmGetProgname(), purpose, pmErrStr(sts));

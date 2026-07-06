@@ -1650,6 +1650,12 @@ rawarchive(pmOptions *opts, const char *name)
 		__pmAddOptArchiveFolio(opts, path);
 		return;
 	}
+	pmsprintf(path, sizeof path, "%s/Latest", name);
+	if (access(path, R_OK) == 0)
+	{
+		__pmAddOptArchiveFolio(opts, path);
+		return;
+	}
 
 	/* else go hunting in the system locations... */
 	if ((logdir = pmGetOptionalConfig("PCP_LOG_DIR")) == NULL)
@@ -1745,6 +1751,7 @@ rawwrite_open(const char *name)
 	char	host[MAXHOSTNAMELEN];
 	char	datebuf[16];
 	size_t	volsize;
+	FILE	*fp;
 	time_t	now = time(NULL);
 	struct tm	*tm = localtime(&now);
 	const char	*env = getenv("LOGVOLSIZE");
@@ -1785,6 +1792,24 @@ rawwrite_open(const char *name)
 			pmGetProgname(), path, pmiErrStr(pmi_ctx));
 		cleanstop(1);
 	}
+	/*
+	** Write a PCP folio (Latest) in the archive directory pointing to
+	** the current day's archive.  Follows the pmlogger convention and
+	** allows "pcp-atop -r <dir>/Latest" for replay.
+	** Write to a temp file then rename(2) for atomic replacement.
+	*/
+	pmsprintf(path, sizeof path, "%s/Latest.tmp", name);
+	fp = fopen(path, "w");
+	if (fp != NULL)
+	{
+		fprintf(fp, "PCPFolio\nVersion: 1\n");
+		fprintf(fp, "Creator: pcp-atop\n");
+		fprintf(fp, "Archive: %s %s-%s\n", host, host, datebuf);
+		fclose(fp);
+		pmsprintf(host, sizeof host, "%s/Latest", name);
+		rename(path, host);
+	}
+
 	/* sidecar and zoneinfo written in rawwrite_init_sidecar() after
 	 * setup_globals() so that supportflags is fully initialised and
 	 * the live PMAPI context exists for __pmZoneinfo() to use */

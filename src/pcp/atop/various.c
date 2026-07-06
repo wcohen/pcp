@@ -1459,7 +1459,14 @@ fetch_metrics(const char *purpose, int nmetrics, pmID *pmids, pmResult **result)
 	}
 
 	curtime_ts = curtime;
-	if ((sts = pmSetMode(fetchmode, &curtime_ts, &fetchstep)) < 0)
+	if (!rawreadflag && fetchmode != PM_MODE_LIVE)
+		fetchmode = PM_MODE_LIVE;
+	if (fetchmode != PM_MODE_LIVE ||
+	    (sts = pmSetMode(fetchmode, &curtime_ts, &fetchstep)) >= 0)
+		sts = 0;	/* local context: skip pmSetMode */
+	else if (sts == PM_ERR_MODE)
+		sts = 0;	/* local context returns PM_ERR_MODE; benign */
+	else
 	{
 		fprintf(stderr, "%s: %s setmode: %s\n",
 			pmGetProgname(), purpose, pmErrStr(sts));
@@ -1475,8 +1482,32 @@ fetch_metrics(const char *purpose, int nmetrics, pmID *pmids, pmResult **result)
 		if (sts == PM_ERR_IPC || sts == -ECONNRESET ||
 		    sts == PM_ERR_TIMEOUT || sts == -EPIPE)
 		{
-			if (pmReconnectContext(pmWhichContext()) >= 0)
-				return -1;	/* caller retries next interval */
+			int	ctx = pmWhichContext();
+
+			if (pmReconnectContext(ctx) >= 0)
+				return -1;	/* reconnected; retry next interval */
+
+			/* reconnect failed; fall back to local context if local */
+			if (localhost)
+			{
+				char	path[MAXPATHLEN];
+
+				pmsprintf(path, sizeof path, "%s/local.conf",
+					pmGetConfig("PCP_SYSCONF_DIR"));
+				setenv("PCP_PMCDCONF_FILE", path, 0);
+				pmsprintf(path, sizeof path, "%s/pmns/local.root",
+					pmGetConfig("PCP_VAR_DIR"));
+				setenv("PMNS_DEFAULT", path, 0);
+
+				pmDestroyContext(ctx);
+				if (pmNewContext(PM_CONTEXT_LOCAL, NULL) >= 0)
+				{
+					fprintf(stderr,
+					    "%s: pmcd lost, continuing with local context\n",
+					    pmGetProgname());
+					return -1;
+				}
+			}
 			if (pmDebugOptions.appl0)
 				fprintf(stderr,
 				    "%s: lost connection (%s), reconnect failed\n",

@@ -413,7 +413,8 @@ photoproc(struct tstat **tasks, unsigned long *taskslen)
 	else
 		pmids[TASK_GEN_WCHAN] = wchanid;
 
-	fetch_metrics("task", TASK_NMETRICS, pmids, &result);
+	if (fetch_metrics("task", TASK_NMETRICS, pmids, &result) < 0)
+		return 0;
 
 	/* extract external process names (insts) */
 	count = fetch_instances("task", TASK_GEN_NAME, descs, &pids, &insts);

@@ -1472,6 +1472,17 @@ fetch_metrics(const char *purpose, int nmetrics, pmID *pmids, pmResult **result)
 			sampflags |= (RRLAST | RRMARK);
 			return sts;
 		}
+		if (sts == PM_ERR_IPC || sts == -ECONNRESET ||
+		    sts == PM_ERR_TIMEOUT || sts == -EPIPE)
+		{
+			if (pmReconnectContext(pmWhichContext()) >= 0)
+				return -1;	/* caller retries next interval */
+			if (pmDebugOptions.appl0)
+				fprintf(stderr,
+				    "%s: lost connection (%s), reconnect failed\n",
+				    pmGetProgname(), pmErrStr(sts));
+			return -1;
+		}
 		fprintf(stderr, "%s: %s query: %s\n",
 			pmGetProgname(), purpose, pmErrStr(sts));
 		cleanstop(1);

@@ -768,8 +768,8 @@ prusage(char *myname, pmOptions *opts)
 
 	printf("\n");
 	printf("\tspecific flags for raw logfiles:\n");
-	printf("\t  -w  write raw data to PCP archive folio\n");
-	printf("\t  -r  read  raw data from PCP archive folio\n");
+	printf("\t  -w  write raw data to PCP archive\n");
+	printf("\t  -r  read  raw data from PCP archive\n");
 	printf("\t  -S  finish %s automatically before midnight "
 	                "(i.s.o. #samples)\n", pmGetProgname());
 	printf("\t  -b  begin showing data from specified date/time\n");

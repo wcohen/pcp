@@ -1637,7 +1637,7 @@ rawarchive(pmOptions *opts, const char *name)
 		return;
 	}
 
-	/* see if a valid folio exists as specified */
+	/* see if a valid folio exists (direct path, old-style, or Latest) */
 	safe_strcpy(tmp, name, sizeof(tmp));
 	if (access(tmp, R_OK) == 0)
 	{

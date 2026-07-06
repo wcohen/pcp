@@ -121,6 +121,8 @@ acctphotoproc(struct tstat **accproc, unsigned int *taskslen, struct timespec *c
 
 		*accproc = (struct tstat *)realloc(*accproc, size);
 		ptrverify(*accproc, "Malloc failed for %lu exited processes\n", count);
+		memset(*accproc + *taskslen, 0,
+			(count - *taskslen) * sizeof(struct tstat));
 		*taskslen = count;
 	}
 

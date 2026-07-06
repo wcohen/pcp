@@ -2010,31 +2010,18 @@ rawwrite_put(pmResult *result)
 		}
 		else
 		{
-			/* Instanced: look up external name then acquire handle */
+			/* Instanced: register by numeric instance ID to avoid
+			 * pmNameInDom RPC to pmcd in the hot write path */
 			for (j = 0; j < vsp->numval; j++)
 			{
-				char	*instname;
+				char	instbuf[32];
 				int	handle;
 
-				/*
-				 * pmNameInDom needs the live fetch context, not the
-				 * pmi write context.  Switch temporarily.
-				 */
-				pmUseContext(saved);
-				if (pmNameInDom(ph->desc.indom,
-						vsp->vlist[j].inst, &instname) < 0)
-				{
-					pmiUseContext(pmi_ctx);
-					continue;
-				}
-				pmiUseContext(pmi_ctx);
-
-				/* register instance on first sight (no-op if known) */
-				pmiAddInstance(ph->desc.indom, instname,
+				pmsprintf(instbuf, sizeof instbuf, "%d",
+					vsp->vlist[j].inst);
+				pmiAddInstance(ph->desc.indom, instbuf,
 						vsp->vlist[j].inst);
-
-				handle = pmiGetHandle(ph->name, instname);
-				free(instname);
+				handle = pmiGetHandle(ph->name, instbuf);
 				if (handle < 0)
 					continue;
 

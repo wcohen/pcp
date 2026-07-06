@@ -1,6 +1,7 @@
 QA output created by 1089
 starting pcp-atop with no limit, we should have to kill this instance
 
+
 hinv.ncpu
     value INTEGER
 
@@ -13,6 +14,7 @@ pcp-atop output ...
 pcp-atop stderr ...
 starting pcp-atop with a sample count, should end automatically
 ps output should be empty
+
 
 hinv.ncpu
     value INTEGER

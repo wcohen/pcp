@@ -49,7 +49,7 @@ OTHER_SUBDIRS = \
 	pmcpp \
 	newhelp \
 	pmieconf \
-	pcp-reboot-init \
+	reboot-init \
 	#
 
 # and all the rest ...

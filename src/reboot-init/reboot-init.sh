@@ -37,7 +37,7 @@ do
     fi
 done
 
-tmp=`mktemp -d "$PCP_TMPFILE_DIR/pcp-reboot-init.XXXXXXXXX"` || exit 1
+tmp=`mktemp -d "$PCP_TMPFILE_DIR/reboot-init.XXXXXXXXX"` || exit 1
 status=1	# fail is the default
 trap "rm -rf $tmp; exit \$status" 0 1 2 3 15
 

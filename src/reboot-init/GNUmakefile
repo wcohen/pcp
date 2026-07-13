@@ -18,13 +18,13 @@ include $(TOPDIR)/src/include/builddefs
 ifeq ($(ENABLE_SYSTEMD),true)
 LDIRT	= pcp-reboot-init.service
 else
-LDIRT	= 
+LDIRT	=
 endif
 
 default:: $(LDIRT)
 
 install:: default
-	$(INSTALL) -m 755 pcp-reboot-init.sh $(PCP_BINADM_DIR)/pcp-reboot-init$(SHELLSUFFIX)
+	$(INSTALL) -m 755 reboot-init.sh $(PCP_BINADM_DIR)/reboot-init$(SHELLSUFFIX)
 ifeq ($(ENABLE_SYSTEMD),true)
 	$(INSTALL) -m 644 pcp-reboot-init.service $(PCP_SYSTEMDUNIT_DIR)/pcp-reboot-init.service
 endif

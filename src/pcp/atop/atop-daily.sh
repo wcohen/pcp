@@ -86,6 +86,7 @@ do
 
     for vol in "$base".[0-9]*
     do
+        case "$vol" in *.zst|*.xz) continue;; esac
         [ -f "$vol" ] && mv -f "$vol" "$vol.tmp" 2>/dev/null
     done
 done

@@ -1098,9 +1098,11 @@ pmiPutLabel(unsigned int flags, unsigned int id, unsigned int inst, const char *
     size_t	size;
     int		l;
     int		new_labelset = 0;
+    char	*endp;
     pmi_label	*lp = NULL;
     char	buf[PM_MAXLABELJSONLEN];
     int		type = (flags & ~(PM_LABEL_OPTIONAL | PM_LABEL_COMPOUND));
+    int		length;
 
     if (current == NULL)
 	return PM_ERR_NOCONTEXT;
@@ -1162,10 +1164,15 @@ pmiPutLabel(unsigned int flags, unsigned int id, unsigned int inst, const char *
 	lp = &current->label[l];
 
     /*
-     * Add the label to the labelset. The value must be quoted unless it is
-     * one of the JSON key values: true, false or null.
+     * Add the label to the labelset.  Values that are already valid JSON
+     * fragments (quoted strings, numbers, true/false/null) are passed
+     * through verbatim; plain unquoted strings are wrapped in quotes.
      */
-    if (strcasecmp(value, "true") == 0 ||
+    length = strlen(value);
+    (void) strtod(value, &endp);
+    if ((value[0] == '"' && length > 1 && value[length-1] == '"') ||
+	(*endp == '\0' && endp != value) ||
+	strcasecmp(value, "true") == 0 ||
 	strcasecmp(value, "false") == 0 ||
 	strcasecmp(value, "null") == 0)
 	pmsprintf(buf, sizeof(buf), "{\"%s\":%s}", name, value);

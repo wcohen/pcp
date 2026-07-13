@@ -27,6 +27,7 @@
 #include <stdarg.h>
 #include <ctype.h>
 #include <math.h>
+#include <sys/wait.h>
 
 #include "atop.h"
 #include "parseable.h"
@@ -1751,28 +1752,54 @@ rawarchive(pmOptions *opts, const char *name)
 }
 
 /*
-** Compress a completed data volume with zstd in a background child.
+** Run a command in the background via double-fork so the parent can
+** reap the intermediate child immediately (no zombie) and the grandchild
+** is orphaned to init for auto-reaping on completion.  The waitpid on
+** the intermediate child is effectively instant.
+*/
+static void
+run_background(const char *abspath, ...)
+{
+	va_list	ap;
+	char	*argv[16];
+	int	argc = 0;
+	pid_t	pid;
+
+	argv[argc++] = (char *)abspath;
+	va_start(ap, abspath);
+	while (argc < 15 && (argv[argc] = va_arg(ap, char *)) != NULL)
+		argc++;
+	va_end(ap);
+	argv[argc] = NULL;
+
+	pid = fork();
+	if (pid == 0)
+	{
+		if (fork() == 0)
+		{
+			alarm(0);
+			execv(abspath, argv);
+		}
+		_exit(0);
+	}
+	if (pid > 0)
+		waitpid(pid, NULL, 0);
+}
+
+/*
+** Compress a completed data volume with zstd in the background.
 ** Called by the pmiSetVolumeSize callback when the import library rotates
 ** to a new volume; path is the full path of the just-completed volume.
-** Uses an absolute path for zstd to avoid PATH hijacking.
-** zstd needs --rm to remove the source; -q suppresses progress output.
 */
 static void
 rawarchive_compress_volume(const char *path)
 {
 	struct stat	st;
-	pid_t		pid;
 
 	if (stat(path, &st) < 0)
 		return;
 
-	if ((pid = fork()) == 0)
-	{
-		alarm(0);
-		execl("/usr/bin/zstd", "zstd", "-q", "--rm", path, (char *)NULL);
-		_exit(1);
-	}
-	/* parent: child reaped by next SIGCHLD or on process exit */
+	run_background("/usr/bin/zstd", "-q", "--rm", path, (char *)NULL);
 }
 
 /*
@@ -1808,11 +1835,7 @@ rawwrite_open(const char *name)
 	*/
 	pmsprintf(path, sizeof path, "%s/atop-daily",
 		pmGetConfig("PCP_BINADM_DIR"));
-	if (fork() == 0)
-	{
-		execl(path, path, "--compress-only", name, (char *)NULL);
-		_exit(0);	/* silently skip if script not installed */
-	}
+	run_background(path, "--compress-only", name, (char *)NULL);
 
 	gethostname(host, sizeof host);
 	host[sizeof(host) - 1] = '\0';
@@ -1888,7 +1911,56 @@ rawwrite_open(const char *name)
 ** was given, or the default recording label set otherwise, then appends
 ** conditional labels gated on detected hardware/PMDAs.
 */
-void
+/*
+** Write context labels into the PMI archive: first the "atop" creator
+** label, then all labels from the live PMAPI context (hostname, domain, etc).
+*/
+static void
+rawwrite_init_labels(void)
+{
+	pmLabelSet	*sets = NULL;
+	char	nbuf[64], vbuf[256];
+	int	nsets, i, j, saved;
+
+	if (pmi_ctx < 0)
+		return;
+
+	saved = pmWhichContext();
+	pmiUseContext(pmi_ctx);
+	pmiPutLabel(PM_LABEL_CONTEXT, 0, 0, "atop", "true");
+
+	pmUseContext(saved);
+	nsets = pmGetContextLabels(&sets);
+
+	pmiUseContext(pmi_ctx);
+	if (nsets > 0)
+	{
+		for (i = 0; i < nsets; i++)
+		{
+			for (j = 0; j < sets[i].nlabels; j++)
+			{
+				pmLabel	*lp = &sets[i].labels[j];
+				const char *name  = sets[i].json + lp->name;
+				const char *value = sets[i].json + lp->value;
+
+				if (lp->namelen >= sizeof nbuf ||
+				    lp->valuelen >= sizeof vbuf)
+					continue;
+				pmsprintf(nbuf, sizeof nbuf, "%.*s",
+					(int)lp->namelen, name);
+				pmsprintf(vbuf, sizeof vbuf, "%.*s",
+					(int)lp->valuelen, value);
+				if (strcmp(nbuf, "atop") == 0)
+					continue;
+				pmiPutLabel(PM_LABEL_CONTEXT, 0, 0, nbuf, vbuf);
+			}
+		}
+		pmFreeLabelSets(sets, nsets);
+	}
+	pmUseContext(saved);
+}
+
+static void
 rawwrite_init_sidecar(void)
 {
 	char	args[512];
@@ -1925,6 +1997,17 @@ rawwrite_init_sidecar(void)
 
 	pmiSetImportProgram("atop", ATOP_VERSION, args, pmi_archpath);
 	pmiSetZoneinfo(NULL);
+}
+
+/*
+** Initialise archive metadata after setup_globals() has created the live
+** PMAPI context: write context labels, then the pmimport sidecar.
+*/
+void
+rawwrite_init(void)
+{
+	rawwrite_init_labels();
+	rawwrite_init_sidecar();
 }
 
 /*

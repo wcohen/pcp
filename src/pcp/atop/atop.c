@@ -464,7 +464,7 @@ main(int argc, char *argv[])
 	setup_globals(&opts);
 
 	if (rawwriteflag)
-		rawwrite_init_sidecar();
+		rawwrite_init();
 
 	/*
 	** catch signals for proper close-down

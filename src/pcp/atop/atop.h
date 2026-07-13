@@ -225,7 +225,7 @@ void		rawfolio(struct pmOptions *);
 void		rawarchive(struct pmOptions *, const char *);
 void		rawarchive_from_midnight(struct pmOptions *);
 void		rawwrite_open(const char *);
-void		rawwrite_init_sidecar(void);
+void		rawwrite_init(void);
 void		rawwrite_register(const char **, pmID *, pmDesc *, int);
 void		rawwrite_put(pmResult *);
 void		rawwrite_flush(struct timespec *);

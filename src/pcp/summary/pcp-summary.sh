@@ -26,7 +26,7 @@ trap "rm -rf $tmp; exit \$sts" 0 1 2 3 15
 
 errors=0
 progname=`basename $0`
-for var in unknown version build numagents numclients ncpu ndisk nnode nrouter nxbow ncell mem cputype uname timezone hostname services status
+for var in unknown version build numagents numclients ncpu ndisk nnode nrouter nxbow ncell mem cputype uname timezone zoneinfo hostname services status
 do
     eval $var="unknown?"
 done

@@ -1943,6 +1943,9 @@ rawwrite_init_labels(void)
 				const char *name  = sets[i].json + lp->name;
 				const char *value = sets[i].json + lp->value;
 
+				if (lp->namelen >= sizeof nbuf ||
+				    lp->valuelen >= sizeof vbuf)
+					continue;
 				pmsprintf(nbuf, sizeof nbuf, "%.*s",
 					(int)lp->namelen, name);
 				pmsprintf(vbuf, sizeof vbuf, "%.*s",

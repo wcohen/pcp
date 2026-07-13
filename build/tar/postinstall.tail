@@ -525,7 +525,7 @@ then
     echo "Rebuilding shared library cache"
     libs="$PCP_LIB_DIR"
     [ "$PCP_LIB32_DIR" != "$PCP_LIB_DIR" ] && libs="$libs $PCP_LIB32_DIR"
-    if ldconfig '-?' 2>&1 | grep -q '.-m'
+    if ldconfig '-?' 2>&1 | grep -E -q '.-m|.-[A-Za-z]*m'
     then
 	# we have a -m (merge) option, use that
 	#

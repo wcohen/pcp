@@ -18,13 +18,13 @@ then
 fi
 PCP_CONF=../../../src/include/pcp.conf
 
-if [ ! -f /etc/pcp.env ]
+if [ ! -f ../../../src/include/pcp.env ]
 then
     echo "Arrgh: ../../../src/include/pcp.env missing"
     exit 1
 fi
 
-. /etc/pcp.env
+. ../../../src/include/pcp.env
 
 iam="`pwd | sed -e 's;/src$;;' -e's;.*/\(.*\);\1;'`"
 
@@ -73,10 +73,17 @@ then
 		if cmp "$PCP_LIB_DIR/$file" "$pkg_dir/$file" >/dev/null
 		then
 		    echo "Warning: removing $PCP_LIB_DIR/$file (already the same as $pkg_dir/$file)"
-		    sudo rm -f "$PCP_LIB_DIR/$file"
+		    if ! sudo rm -f "$PCP_LIB_DIR/$file"
+		    then
+			echo "Warning: rm $PCP_LIB_DIR/$file failed"
+		    fi
 		else
 		    echo "Info: updated $pkg_dir/$file with $PCP_LIB_DIR/$file"
-		    sudo mv "$PCP_LIB_DIR/$file" "$pkg_dir/$file"
+		    if ! sudo mv "$PCP_LIB_DIR/$file" "$pkg_dir/$file"
+		    then
+			echo "Arrgh: mv $PCP_LIB_DIR/$file $pkg_dir/$file failed"
+			exit 1
+		    fi
 		fi
 	    else
 		echo "Arrgh: $PCP_LIB_DIR/$file present, but no $pkg_dir/$file"

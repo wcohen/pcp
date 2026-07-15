@@ -26,6 +26,9 @@ jobs:
             echo "Removing unused tap: $tap"
             brew untap "$tap" || true
           done
+          # Upgrade pkg-config/pkgconf before brew bundle so it doesn't
+          # race with other parallel installs that depend on pkgconf
+          brew upgrade pkg-config 2>/dev/null || true
       - name: Install Homebrew deps
         id: install-brew-deps
         run: brew bundle

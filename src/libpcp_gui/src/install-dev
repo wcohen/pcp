@@ -2,8 +2,13 @@
 #
 # Developer overlay install for libpcp<foo>
 #
+# Usage: install-dev [-d]
+#
 
-# need to get the pcp.conf usewd in the build, not the
+debug=false
+[ $# -eq 1 -a "X$1" = X-d ] && debug=true
+
+# need to get the pcp.conf used in the build, not the
 # installed one
 #
 if [ ! -f ../../../src/include/pcp.conf ]
@@ -44,37 +49,45 @@ then
     exit 1
 fi
 
+$debug && echo "Debug: iam=$iam dso_ver=$dso_ver"
+$debug && echo "Debug: PCP build libdir: $PCP_LIB_DIR"
+
 pkg_dir="`pkg-config --variable=libdir $iam 2>/dev/null`"
+$debug && echo "Debug: pkg-config libdir: $pkg_dir"
 if [ -z "$pkg_dir" ]
 then
     echo "Arrgh: no libdir from pkg-config"
     exit 1
 fi
-echo "Debug: pkg-config libdir: $pkg_dir"
-echo "Debug: PCP build libdir: $PCP_LIB_DIR"
 
 if [ "$pkg_dir" != "$PCP_LIB_DIR" ]
 then
-    if ! [ -f $PCP_LIB_DIR/$iam.so.$dso_ver ]
-    then
-	echo "Arrgh: no $PCP_LIB_DIR/$iam.so.$dso_ver"
-	exit 1
-    fi
-    if ! [ -f "$pkg_dir"/$iam.so.$dso_ver ]
-    then
-	echo "Arrgh: no $pkg_dir/$iam.so.$dso_ver"
-	exit 1
-    fi
-    if cmp $PCP_LIB_DIR/$iam.so.$dso_ver "$pkg_dir"/$iam.so.$dso_ver >/dev/null
-    then
-	echo "Warning: $PCP_LIB_DIR/$iam.so.$dso_ver and $pkg_dir/$iam.so.$dso_ver already the same?"
-	ls -l $PCP_LIB_DIR/$iam.so.$dso_ver "$pkg_dir"/$iam.so.$dso_ver
-    else
-	sudo cp $PCP_LIB_DIR/$iam.so.$dso_ver "$pkg_dir"/$iam.so.$dso_ver
-	echo "Info: updated $pkg_dir/$iam.so.$dso_ver"
-    fi
+    $debug && echo "Debug: moving $iam files from $PCP_LIB_DIR to $pkg_dir"
+    for file in ${iam}.so ${iam}.so.$dso_ver ${iam}.a pkgconfig/${iam}.pc
+    do
+	if [ -f "$PCP_LIB_DIR/$file" ]
+	then
+	    if [ -f "$pkg_dir/$file" ]
+	    then
+		# both exist
+		if cmp "$PCP_LIB_DIR/$file" "$pkg_dir/$file" >/dev/null
+		then
+		    echo "Warning: removing $PCP_LIB_DIR/$file (already the same as $pkg_dir/$file)"
+		    sudo rm -f "$PCP_LIB_DIR/$file"
+		else
+		    echo "Info: updated $pkg_dir/$file with $PCP_LIB_DIR/$file"
+		    sudo mv "$PCP_LIB_DIR/$file" "$pkg_dir/$file"
+		fi
+	    else
+		echo "Arrgh: $PCP_LIB_DIR/$file present, but no $pkg_dir/$file"
+		exit 1
+	    fi
+	else
+	    echo "Warning: $PCP_LIB_DIR/$file: not found"
+	fi
+    done
 else
-    echo "Info: pkg-config and GNUmakefile agree on location for $iam.so.$dso_ver, nothing else to be done"
+    $debug && echo "Debug: nothing else to do"
 fi
 
 exit 0

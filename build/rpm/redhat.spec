@@ -1490,6 +1490,20 @@ database (https://www.sap.com/products/data-cloud/hana.html).
 #end pcp-pmda-hdb
 
 #
+# pcp-pmda-chrony
+#
+%package pmda-chrony
+License: GPL-2.0-or-later
+Summary: Performance Co-Pilot (PCP) metrics for the chronyd NTP daemon
+URL: https://pcp.io
+Requires: pcp = %{version}-%{release} pcp-libs = %{version}-%{release}
+Requires: python3-pcp
+%description pmda-chrony
+This package contains the PCP Performance Metrics Domain Agent (PMDA) for
+collecting metrics from the chronyd NTP daemon via chronyc.
+# end pcp-pmda-chrony
+
+#
 # pcp-pmda-gluster
 #
 %package pmda-gluster
@@ -2516,6 +2530,7 @@ basic_manifest | keep '(etc/pcp|pmdas)/bind2(/|$)' >pcp-pmda-bind2-files
 basic_manifest | keep '(etc/pcp|pmdas)/bonding(/|$)' >pcp-pmda-bonding-files
 basic_manifest | keep '(etc/pcp|pmdas)/bpf(/|$)' >pcp-pmda-bpf-files
 basic_manifest | keep '(etc/pcp|pmdas)/bpftrace(/|$)' >pcp-pmda-bpftrace-files
+basic_manifest | keep '(etc/pcp|pmdas)/chrony(/|$)' >pcp-pmda-chrony-files
 basic_manifest | keep '(etc/pcp|pmdas)/cisco(/|$)' >pcp-pmda-cisco-files
 basic_manifest | keep '(etc/pcp|pmdas)/dbping(/|$)' >pcp-pmda-dbping-files
 basic_manifest | keep '(etc/pcp|pmdas|pmieconf)/dm(/|$)' >pcp-pmda-dm-files
@@ -2591,7 +2606,7 @@ rm -f packages.list
 for pmda_package in \
     activemq amdgpu apache \
     bash bind2 bonding bpf bpftrace \
-    cisco \
+    chrony cisco \
     db2 dbping denki docker dm ds389 ds389log \
     elasticsearch \
     farm \
@@ -2958,6 +2973,9 @@ exit 0
 %preun pmda-hdb
 %{pmda_remove "$1" "hdb"}
 
+%preun pmda-chrony
+%{pmda_remove "$1" "chrony"}
+
 %preun pmda-gluster
 %{pmda_remove "$1" "gluster"}
 
@@ -3312,6 +3330,8 @@ fi
 
 %if !%{disable_python3}
 %files geolocate -f pcp-geolocate-files.rpm
+
+%files pmda-chrony -f pcp-pmda-chrony-files.rpm
 
 %files pmda-gluster -f pcp-pmda-gluster-files.rpm
 

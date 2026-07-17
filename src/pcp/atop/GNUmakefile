@@ -75,6 +75,7 @@ install: default
 	$(INSTALL) -m 644 atop-daily.timer $(PCP_SYSTEMDUNIT_DIR)/atop-daily.timer
 	$(INSTALL) -m 755 atop-daily.sh $(PCP_BINADM_DIR)/atop-daily
 	$(INSTALL) -m 644 atop.conf $(PCP_SYSCONFIG_DIR)/atop
+	$(INSTALL) -m 755 -d $(PCP_IMPORTLOG_DIR)/atop
 	@$(INSTALL_MAN)
 else
 build-me:

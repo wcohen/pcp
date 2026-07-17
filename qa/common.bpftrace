@@ -158,4 +158,4 @@ _pmdabpftrace_check_probes()
 # on vm03 the PMDA takes a long time to get into gear, so increase
 # the credentials exchange timeout
 #
-pmstore pmcd.control.creds_timeout 15 >>$seq_full 2>&1
+pmstore pmcd.control.creds_timeout 30 >>$seq_full 2>&1

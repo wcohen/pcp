@@ -16,7 +16,7 @@ Prerequisites
 
 * pcp-export-pcp2opentelemetry package
 * pcp-pmda-opentelemetry package
-* pmcd enabled & running
+* pmcd enabled and running
 
 Exporting PCP Metrics to OpenTelemetry
 **************************************
@@ -208,8 +208,8 @@ Removal
       # cd $PCP_PMDAS_DIR/opentelemetry
       # sudo ./Remove
 
-Troubleshooting & Debugging
-***************************
+Troubleshooting and Debugging
+*****************************
 
 Enable Debugging
 
@@ -229,4 +229,6 @@ Checkout the log files:
 Next steps
 **********
 
-See **man pcp2openmetrics** and **man pmdaopentelemetry** for more information
+See **man pcp2opentelemetry** and **man pmdaopentelemetry** for more information.
+
+See also **man PMWEBAPI** for OpenTelemetry metric egress using the /metrics API.

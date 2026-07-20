@@ -89,7 +89,7 @@ $(LIBCONFIG): $(LIBCONFIG).in
 endif
 
 $(TMPFILESCONF): $(TMPFILESCONF).in
-	@sed -e's|@PCP_IMPORT_DIR@|$(PCP_IMPORT_DIR)|g' <$< >$@
+	@sed -e's|@PCP_IMPORTRUN_DIR@|$(PCP_IMPORTRUN_DIR)|g' <$< >$@
 
 domain.h: $(TOPDIR)/src/pmns/stdpmid
 	$(DOMAIN_MAKERULE)

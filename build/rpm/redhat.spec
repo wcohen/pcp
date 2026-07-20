@@ -464,6 +464,13 @@ License: LGPL-2.1-or-later
 Summary: Performance Co-Pilot run-time libraries
 URL: https://pcp.io
 Requires: pcp-conf = %{version}-%{release}
+%if !%{disable_selinux}
+%if 0%{?fedora} >= 35 || 0%{?rhel} >= 8
+Requires: (pcp-selinux-import = %{version}-%{release} if selinux-policy-targeted)
+%else
+Requires: pcp-selinux-import = %{version}-%{release}
+%endif
+%endif
 
 # prevent conflicting library (libpcp.so.N) installation
 Conflicts: postgresql-pgpool-II
@@ -2283,6 +2290,21 @@ Requires: policycoreutils selinux-policy-targeted
 This package contains SELinux support for PCP.  The package contains
 interface rules, type enforcement and file context adjustments for an
 updated policy package.
+
+#
+# pcp-selinux-import package
+#
+%package selinux-import
+License: GPL-2.0-or-later AND CC-BY-3.0
+Summary: SELinux policy for PCP local context recording tools
+URL: https://pcp.io
+Requires: policycoreutils selinux-policy-targeted
+
+%description selinux-import
+This package contains SELinux support for PCP tools that operate in
+local context mode without pmcd, such as pcp-atop and sysstat (sadc
+with -O pcp).  It provides type enforcement, interface rules, and
+file context definitions for the local recording use case.
 %endif
 
 
@@ -2484,7 +2506,8 @@ total_manifest | keep 'tutorials|/html/|pcp-doc|man.*\.[1-9].*' | cull 'out' >pc
 total_manifest | keep 'testsuite|pcpqa|etc/systemd/system|libpcp_fault|pcp/fault.h|pmcheck/pmda-sample' >pcp-testsuite-files
 
 basic_manifest | keep "$PCP_GUI|pcp-gui|applications|pixmaps|hicolor" | cull 'pmtime.h' >pcp-gui-files
-basic_manifest | keep 'selinux' | cull 'tmp|testsuite' >pcp-selinux-files
+basic_manifest | keep 'selinux' | cull 'tmp|testsuite|pcp-import' >pcp-selinux-files
+basic_manifest | keep 'selinux.*pcp-import' | cull 'tmp' >pcp-selinux-import-files
 basic_manifest | keep 'zeroconf|daily[-_]report|/sa$' | cull 'pmcheck' >pcp-zeroconf-files
 basic_manifest | keep 'pcp-atop|atop-daily|atop\.service|/atop$|/atopsar$' | cull 'selinux|pmlogconf|pmieconf|pmrepconf' >pcp-atop-files
 total_manifest | keep 'man.*(pcp-atop|pcp-atopsar|pcp-atoprc|atop-daily|/atop\.|/atopsar\.)' >>pcp-atop-files
@@ -2649,7 +2672,7 @@ for subpackage in \
     pcp-conf pcp-gui \
     pcp-atop pcp-dstat pcp-htop \
     pcp-doc pcp-libs pcp-devel pcp-libs-devel \
-    pcp-geolocate pcp-selinux \
+    pcp-geolocate pcp-selinux pcp-selinux-import \
     pcp-system-tools pcp-testsuite pcp-zeroconf \
     $pmda_packages $import_packages $export_packages ; \
 do \
@@ -2678,7 +2701,7 @@ BEGIN {
     f=p"-files.rpm";
 }
 $1 == "d" {
-            if (match ($5, "'$PCP_RUN_DIR'") || match ($5, "'$PCP_IMPORT_DIR'")) {
+            if (match ($5, "'$PCP_RUN_DIR'") || match ($5, "'$PCP_IMPORTRUN_DIR'")) {
                 printf ("%%%%ghost ") >> f;
             }
             if (match ($5, "'$PCP_VAR_DIR'/testsuite")) {
@@ -3197,6 +3220,20 @@ if [ $1 -eq 0 ]; then
     %selinux_modules_uninstall -s targeted pcp
     %selinux_relabel_post -s targeted
 fi
+
+%pre selinux-import
+%selinux_relabel_pre -s targeted
+
+%post selinux-import
+PCP_SELINUX_DIR=%{_selinuxdir}
+%selinux_modules_install -s targeted "$PCP_SELINUX_DIR/pcp-import.pp.bz2"
+%selinux_relabel_post -s targeted
+
+%postun selinux-import
+if [ $1 -eq 0 ]; then
+    %selinux_modules_uninstall -s targeted pcp-import
+    %selinux_relabel_post -s targeted
+fi
 %endif
 
 %files -f pcp-files.rpm
@@ -3216,6 +3253,9 @@ fi
 %if !%{disable_selinux}
 %files selinux -f pcp-selinux-files.rpm
 %ghost %verify(not md5 size mode mtime) %{_sharedstatedir}/selinux/targeted/active/modules/200/pcp
+
+%files selinux-import -f pcp-selinux-import-files.rpm
+%ghost %verify(not md5 size mode mtime) %{_sharedstatedir}/selinux/targeted/active/modules/200/pcp-import
 %endif
 
 %if !%{disable_qt}

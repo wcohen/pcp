@@ -1,5 +1,5 @@
 #
-# Copyright (c) 2017-2018,2020-2022 Red Hat.
+# Copyright (c) 2026 Red Hat.
 #
 # This program is free software; you can redistribute it and/or modify it
 # under the terms of the GNU General Public License as published by the
@@ -12,15 +12,13 @@
 # for more details.
 #
 
-TOPDIR = ../..
+TOPDIR = ../../..
 include $(TOPDIR)/src/include/builddefs
-IAM = pcp
-SUBDIRS = import
+IAM = pcp-import
 
 LDIRT = $(IAM).cil $(IAM).mod $(IAM).pp $(IAM).pp.bz2
 LDIRDIRT = tmp
 
-PACKAGES_SELINUX_DIR = $(PCP_SELINUX_DIR)/packages
 TARGETED_SELINUX_DIR = $(PCP_SELINUX_DIR)/packages/targeted
 
 default default_pcp: build-me
@@ -28,23 +26,18 @@ default default_pcp: build-me
 include $(BUILDRULES)
 
 ifeq "$(ENABLE_SELINUX)" "true"
-build-me:	$(IAM).pp.bz2 $(SUBDIRS)
-	$(SUBDIRS_MAKERULE)
+build-me: $(IAM).pp.bz2
 
-install install_pcp: default $(SUBDIRS)
-	$(INSTALL) -m 755 -d $(PCP_SELINUX_DIR)
-	$(INSTALL) -m 755 -d $(PACKAGES_SELINUX_DIR)
+install install_pcp: default
 	$(INSTALL) -m 755 -d $(TARGETED_SELINUX_DIR)
 	$(INSTALL) -m 644 $(IAM).pp.bz2 $(TARGETED_SELINUX_DIR)/$(IAM).pp.bz2
-	$(SUBDIRS_MAKERULE)
 else
 build-me:
 install install_pcp:
 endif
 
 $(IAM).pp: $(IAM).te $(IAM).fc $(IAM).if
-	@test -d tmp || mkdir tmp # workaround an el7 selinux makefile issue
-	# lots of duplicate definition from system container.if - filter out
+	@test -d tmp || mkdir tmp
 	$(MAKE) -f /usr/share/selinux/devel/Makefile $(IAM).pp 2>&1 | grep -v container.if
 
 $(IAM).pp.bz2: $(IAM).pp

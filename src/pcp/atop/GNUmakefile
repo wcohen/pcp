@@ -127,6 +127,7 @@ atop.o atopsar.o various.o:	$(TOPDIR)/src/include/pcp/libpcp.h
 atop.service: atop.service.in
 	$(SED) \
 	    -e 's|@PCP_BINADM_DIR@|$(PCP_BINADM_DIR)|g' \
+	    -e 's|@PCP_IMPORTLOG_DIR@|$(PCP_IMPORTLOG_DIR)|g' \
 	    -e 's|@PCP_SYSCONFIG_DIR@|$(PCP_SYSCONFIG_DIR)|g' \
 	    $< > $@
 

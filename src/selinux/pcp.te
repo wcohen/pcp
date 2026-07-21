@@ -113,8 +113,10 @@ allow pcp_pmcd_t self:unix_dgram_socket { create_socket_perms getattr };
 allow pcp_pmcd_t self:cap_userns sys_ptrace;
 
 kernel_get_sysvipc_info(pcp_pmcd_t)
-optional_policy(`
-    kernel_io_uring_use(pcp_pmcd_t)
+ifdef(`kernel_io_uring_use',
+    optional_policy(`
+	kernel_io_uring_use(pcp_pmcd_t)
+    ')
 ')
 kernel_manage_perf_event(pcp_pmcd_t)
 kernel_read_debugfs(pcp_pmcd_t)
@@ -230,9 +232,10 @@ optional_policy(`
     #RHBZ2223568
     allow pcp_pmproxy_t self:io_uring { sqpoll };
 ')
-
-optional_policy(`
-    kernel_io_uring_use(pcp_pmproxy_t)
+ifdef(`kernel_io_uring_use',
+    optional_policy(`
+	kernel_io_uring_use(pcp_pmproxy_t)
+    ')
 ')
 kernel_search_network_sysctl(pcp_pmproxy_t)
 

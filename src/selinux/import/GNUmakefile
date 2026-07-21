@@ -36,9 +36,11 @@ build-me:
 install install_pcp:
 endif
 
+# lots of duplicate definition from system container.if, zabbix.if
+# and others ... filter 'em out
 $(IAM).pp: $(IAM).te $(IAM).fc $(IAM).if
 	@test -d tmp || mkdir tmp
-	$(MAKE) -f /usr/share/selinux/devel/Makefile $(IAM).pp 2>&1 | grep -v container.if
+	$(MAKE) -f /usr/share/selinux/devel/Makefile $(IAM).pp 2>&1 | grep -v -E '/(container|zabbix|nbdkit|passt|smartmon|insights_core)\.if:[0-9]*: Warning: duplicate definition'
 
 $(IAM).pp.bz2: $(IAM).pp
 	$(BZIP2) -9 < $^ > $@

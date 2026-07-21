@@ -3847,7 +3847,7 @@ _triage_wait_point()
 	__file="$here/$seq.wait"
 	__msg="$1"
     else
-	__file=$seq.wait
+	__file="$here/$seq.wait"
 	__msg=""
     fi
     if [ -f "$__file" ]

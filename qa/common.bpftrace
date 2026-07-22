@@ -118,7 +118,7 @@ _pmdabpftrace_check_probes()
 {
     if [ ! -f "$1" ]
     then
-	echo "_pmdabpfteace_check_probes: Warning: cannot find bpftrace script: $1"
+	echo "_pmdabpftrace_check_probes: Warning: cannot find bpftrace script: $1"
 	return
     fi
     $sudo bpftrace -l >$tmp.probes

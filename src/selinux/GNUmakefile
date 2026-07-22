@@ -44,8 +44,7 @@ endif
 
 $(IAM).pp: $(IAM).te $(IAM).fc $(IAM).if
 	@test -d tmp || mkdir tmp # workaround an el7 selinux makefile issue
-	# lots of duplicate definition from system container.if - filter out
-	$(MAKE) -f /usr/share/selinux/devel/Makefile $(IAM).pp 2>&1 | grep -v container.if
+	$(MAKE) -f /usr/share/selinux/devel/Makefile $(IAM).pp
 
 $(IAM).pp.bz2: $(IAM).pp
 	$(BZIP2) -9 < $^ > $@

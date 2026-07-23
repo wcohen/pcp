@@ -989,13 +989,15 @@ PM_FAULT_POINT("libpcp/" __FILE__ ":11", PM_FAULT_ALLOC);
 		if (sts >= 0) {
 		    sts = addlabel(acp, type, ident, nsets, labelsets, &stamp);
 		    /*
-		     * A duplicate labelset was not stored, so we own the
-		     * decoded labelsets and must free them here (compare the
-		     * PMLOGPUTINDOM_DUP handling for indoms above).
+		     * If addlabel() did not store the labelsets — whether
+		     * because of an error or a duplicate — we still own
+		     * the decoded payload and must free it here (compare
+		     * the PMLOGPUTINDOM_DUP handling for indoms above).
 		     */
-		    if (sts == PMLOGPUTINDOM_DUP) {
+		    if (sts != 0) {
 			pmFreeLabelSets(labelsets, nsets);
-			sts = 0;
+			if (sts == PMLOGPUTINDOM_DUP)
+			    sts = 0;
 		    }
 		}
 	    }

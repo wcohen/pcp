@@ -31,12 +31,6 @@
  */
 #define _TOTAL			16
 
-#define PMCD_CONTROL_DEBUG_ITEM			0
-#define PMCD_CONTROL_TIMEOUT_ITEM		4
-#define PMCD_CONTROL_REGISTER_ITEM		8
-#define PMCD_CONTROL_SIGHUP_ITEM		15
-#define PMCD_CONTROL_CREDS_TIMEOUT_ITEM	30
-
 /*
  * all metrics supported in this PMD - one table entry for each
  */
@@ -1931,11 +1925,7 @@ pmcd_store(pmdaResult *result, pmdaExt *pmda)
 	item = pmID_item(vsp->pmid);
 
 	if (cluster == 0) {
-	    if (item == PMCD_CONTROL_DEBUG_ITEM ||
-		item == PMCD_CONTROL_TIMEOUT_ITEM ||
-		(item >= PMCD_CONTROL_REGISTER_ITEM &&
-		 item <= PMCD_CONTROL_SIGHUP_ITEM) ||
-		item == PMCD_CONTROL_CREDS_TIMEOUT_ITEM) {
+	    if (item != 24) { /* only pmcd.seqnum needs no check */
 		if (ctx >= num_ctx)
 		    grow_ctxtab(ctx);
 		if (ctxtab[ctx].uid != 0) {

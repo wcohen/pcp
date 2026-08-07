@@ -89,7 +89,8 @@ else
     echo "No pmcd.log?" >>$seq_full
     $PCP_PS_PROG $PCP_PS_ALL_FLAGS | grep -E '[P]PID|/[p]mcd( |$)' >>$seq_full
 fi
-if ! _wait_for_pmcd 10 unix: 2>&1; then _exit 1; fi | tee -a $seq_full | _filter
+if ! _wait_for_pmcd 10 unix: >$tmp.tmp 2>&1; then cat $tmp.tmp; _exit 1; fi
+tee -a $seq_full <$tmp.tmp | _filter
 grep -i 'starting pmcd' $tmp.out \
 | _filter \
 | sed -e "s/$$/MYPID/" \

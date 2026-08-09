@@ -276,7 +276,7 @@ static int detect_cpu(void) {
 			sscanf(result,"%*s%*s%s",vendor);
 
 			if (strncmp(vendor,"GenuineIntel",12)) {
-				pmNotifyErr(LOG_INFO, "%s not an Intel chip\n",vendor);
+				log_message(LOG_INFO, "%s not an Intel chip\n",vendor);
 				fclose(fff);
 				return -1;
 			}
@@ -285,7 +285,7 @@ static int detect_cpu(void) {
 		if (!strncmp(result,"cpu family",10)) {
 			sscanf(result,"%*s%*s%*s%d",&family);
 			if (family!=6) {
-				pmNotifyErr(LOG_INFO, "Wrong CPU family %d\n",family);
+				log_message(LOG_INFO, "Wrong CPU family %d\n",family);
 				fclose(fff);
 				return -1;
 			}
@@ -422,7 +422,7 @@ static int detect_cpu(void) {
 	}
 
 	if (model != -1)
-		pmNotifyErr(LOG_INFO, "Found extra MSRs: dram %d, pp0 %d, pp1 %d, psys %d\n",
+		log_message(LOG_INFO, "Found extra MSRs: dram %d, pp0 %d, pp1 %d, psys %d\n",
 			has_msr_dram,has_msr_pp0,has_msr_pp1,has_msr_psys);
 
 	return model;

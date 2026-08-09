@@ -880,8 +880,14 @@ pmwebapi_labelsetdup(pmLabelSet *lp)
     if ((dup = calloc(1, sizeof(pmLabelSet))) == NULL)
 	return NULL;
     *dup = *lp;
-    if (lp->nlabels <= 0)
+    dup->hash = NULL;
+    dup->compound = 0;
+    if (lp->nlabels <= 0 || lp->json == NULL) {
+	dup->json = NULL;
+	dup->jsonlen = 0;
+	dup->labels = NULL;
 	return dup;
+    }
     if ((json = strdup(lp->json)) == NULL) {
 	free(dup);
 	return NULL;

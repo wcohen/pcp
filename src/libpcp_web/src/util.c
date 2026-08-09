@@ -883,6 +883,7 @@ pmwebapi_labelsetdup(pmLabelSet *lp)
     dup->hash = NULL;
     dup->compound = 0;
     if (lp->nlabels <= 0 || lp->json == NULL) {
+	dup->nlabels = 0;
 	dup->json = NULL;
 	dup->jsonlen = 0;
 	dup->labels = NULL;

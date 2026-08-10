@@ -1,0 +1,14 @@
+#!/bin/sh -e
+#DEBHELPER#
+
+if which systemd-tmpfiles >/dev/null 2>&1
+then
+    if systemd-tmpfiles --create /usr/lib/tmpfiles.d/libpcp_import.conf
+    then
+	:
+    else
+	echo >&2 "libpcp-import2.postinstall: Warning: systemd-tmpfiles failed"
+    fi
+fi
+
+exit 0

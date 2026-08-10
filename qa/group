@@ -1273,7 +1273,7 @@ suse
 711 pmimport pmlogsummary perl local sar2pcp
 712 context libpcp pmcd secure local kernel
 713 context libpcp pmproxy secure local
-714 context libpcp pmcd secure local kernel
+714:retired context libpcp pmcd secure local kernel
 715 pmda.simple perl
 716 dbpmda pmda.simple perl
 717 pmda.simple python
@@ -1407,7 +1407,7 @@ suse
 845 pmda.mounts local python
 846 sheet2pcp pmimport pmlogdump perl local libpcp_import
 847 containers local iostat
-848 pmcd secure local kernel
+848:retired pmcd secure local kernel
 849 pmie local
 850:retired pmcollect
 851 iostat local pcp python kernel

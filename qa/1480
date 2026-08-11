@@ -93,7 +93,7 @@ END				{ print int(sum+0.5) }'`
 echo "pminfo -f lmsensors output:" >> $seq_full
 
 PMDA=`pminfo -f lmsensors | tee -a $seq_full | grep '^  *value ' | \
-	awk '{ sum += $2 } END { print sum }'`
+	awk '{ sum += $2 } END { print sum+0 }'`
 
 if _within_tolerance "Expecting $SENS +- 10%" $PMDA $SENS 10%; then
     echo -n "The output of the 'sensors -u' values differs not more than 10% "

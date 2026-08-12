@@ -23,6 +23,7 @@ _filter()
     #
     echo "Checking for errors in pmlc output ..."
     sed <$1 \
+	-e '/Starting pmlogger \.\.\. /d' \
 	-e '/Warning: already using all instances for pmcd.agent.status/d' \
 	-e '/^$/d' \
 	-e '/^disk[^:]*$/d' \

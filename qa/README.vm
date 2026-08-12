@@ -277,7 +277,7 @@ SUSE (SLES)
 
 FreeBSD
     https://www.freebsd.org/releases/
-    01 Jan 2026: 14.3 and 15.0
+    12 Aug 2026: 14.4 and 15.1
     # which packages are installed
     $ pkg info -a | sed -e 's/-[0-9].*//'
     # package search recipe (name and info or description)

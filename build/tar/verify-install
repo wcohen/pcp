@@ -98,6 +98,7 @@ echo "Symlinks ..."
 # like ...
 # lrwxr-xr-x  0 kenj   wheel       0 Aug 10 15:34 etc/pcp/pmcd/rc.local -> ../../../usr/libexec/pcp/services/local
 #
+here=`pwd`
 grep ' -> ' <$tmp.toc \
 | awk '{ print "/" $(NF-2),$NF }' \
 | while read link dst
@@ -105,7 +106,22 @@ do
     if [ -L "$link" ]
     then
 	$debug && echo "$link: symlink found"
-	:
+	dir=`dirname "$link"`
+	if [ -d "$dir" ]
+	then
+	    if cd "$dir"
+	    then
+		if [ ! -f "$dst" ]
+		then
+		    echo "Error: $link symlink destination ($dst) has vanished"
+		fi
+		cd $here
+	    else
+		echo "Error: $link cd to $dir failed"
+	    fi
+	else
+	    echo "Error: $link directory $dir vanished"
+	fi
     elif [ -f "$link" ]
     then
 	if grep -q "^SR $link\$" <$tmp.exceptions

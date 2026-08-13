@@ -626,12 +626,14 @@ for pattern in \
         "$PCP_VAR_DIR"/testsuite/findmetric \
 	"$PCP_VAR_DIR"/testsuite/admin/package-lists/CentOS+6+* \
 	"$PCP_VAR_DIR"/testsuite/admin/package-lists/Debian+10+* \
+	"$PCP_VAR_DIR"/testsuite/admin/package-lists/Debian+11+i686 \
 	"$PCP_VAR_DIR"/testsuite/admin/package-lists/Fedora+3?+* \
 	"$PCP_VAR_DIR"/testsuite/admin/package-lists/Fedora+4[0-1]+* \
 	"$PCP_VAR_DIR"/testsuite/admin/package-lists/FreeBSD+1[0-3]+* \
 	"$PCP_VAR_DIR"/testsuite/admin/package-lists/MX+23.[0-5]+* \
 	"$PCP_VAR_DIR"/testsuite/admin/package-lists/OpenBSD+6.[0-9]+* \
 	"$PCP_VAR_DIR"/testsuite/admin/package-lists/OpenBSD+7.[0-5]+* \
+	"$PCP_VAR_DIR"/testsuite/admin/package-lists/OpenBSD+7.6+amd64 \
 	"$PCP_VAR_DIR"/testsuite/admin/package-lists/OpenIndiana+2025.06+* \
 	"$PCP_VAR_DIR"/testsuite/admin/package-lists/RHEL+[67]+* \
 	"$PCP_VAR_DIR"/testsuite/admin/package-lists/Slackware+14.[0-2]+* \

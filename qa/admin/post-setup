@@ -1,0 +1,408 @@
+#!/bin/sh
+#
+# initialization for a new vm ... run on the vm after
+# setup-vm has been run
+#
+
+# real host that runs all the vm's
+#
+remote=bozo
+remote_ipaddr=192.168.20.100
+
+# for the QA Farm ...
+# vm's ipaddr is last 192.168.20.200 + last 2 digits of vm hostname
+#
+vm_ipaddr="`hostname | sed -e 's/.*\(..\)$/192.168.20.2\1/'`"
+
+case `hostname`
+in
+    $remote|$remote.localdomain)
+    	echo >&2 "Error: never run this script on $remote"
+	exit 1
+	;;
+    *)
+	;;
+esac
+
+tmp=/tmp/post-setup-$$
+sts=1
+trap "rm -f $tmp.*; exit \$sts" 0 1 2 3 15
+
+_usage()
+{
+    echo "Usage: $0"
+    echo "Options:"
+    echo "  -c       verbose check, don't change anything"
+    echo "  -d       enable debugging"
+    echo "  -q       quick, skip refresh and ping check (used in exec)"
+    exit
+}
+
+quick=false
+refesh=true
+check=false
+modified=false
+debug=false
+exec_opts=''
+while getopts 'cdeq?' p
+do
+    case "$p"
+    in
+	c)	check=true
+		exec_opts="$exec_opts -c"
+		;;
+	d)	debug=true
+		exec_opts="$exec_opts -d"
+		;;
+        e)	# i've been exec'd, no refresh or ping
+		refresh=false
+		ping=false
+		;;
+	q)	quick=true
+		refresh=false
+		;;
+	?)	echo "bad arg: $p"; _usage
+		# NOTREACHED
+    esac
+done
+shift `expr $OPTIND - 1`
+
+if $quick
+then
+    :
+else
+    ping -c 1 $remote >$tmp.out 2>&1
+    if [ $? != 0 ]
+    then
+	cat $tmp.out
+	echo "Warning: cannot ping $remote"
+	# DNS not configured or ethernet is using DHCP => no DNS to
+	# lookup $remote, try hard-wired ipaddr
+	#
+	ping -c 1 $remote_ipaddr >$tmp.out 2>&1
+	if [ $? != 0 ]
+	then
+	    cat $tmp.out
+	    echo "Error: cannot ping $remote"
+	    exit
+	fi
+    fi
+    $check && echo "Info: ping: ok"
+fi
+
+# preliminaries ...
+#
+if ! which awk >/dev/null 2>&1
+then
+    echo "Error: need to install awk first"
+    exit
+fi
+
+# platform specifics ... check for commands and options
+#
+use_rsync=false
+which rsync >/dev/null 2>&1 && use_rsync=true
+use_systemctl=false
+which systemctl >/dev/null 2>&1 && use_systemctl=true
+
+pkg_env=""
+if which apt-get >/dev/null 2>&1
+then
+    pkg_env="DEBIAN_FRONTEND=noninteractive"
+    pkg_cmd="apt-get"
+    #!# pkg_install_options='-o Dpkg::Options::="--force-confold" -o Dpkg::Options::="--force-confdef" install -y'
+    pkg_install_options='-y install'
+elif which zypper >/dev/null 2>&1
+then
+    pkg_cmd="zypper"
+    pkg_install_options="-y install"
+elif which dnf >/dev/null 2>&1
+then
+    pkg_cmd="dnf"
+    pkg_install_options="-y install"
+else
+    echo "Botch: need recipe for system package installer"
+    exit
+fi
+
+# refresh yourself!
+#
+if $refresh
+then
+    echo "Refreshing $0 script from $remote ..."
+    if $use_rsync
+    then
+	rsync $RSYNC_PORT $remote:bin/post-setup $tmp.post-setup >$tmp.out 2>&1
+    else
+	scp $SCP_PORT $remote:bin/post-setup $tmp.post-setup >$tmp.out 2>&1
+    fi
+    if [ $? = 0 ]
+    then
+	if diff $HOME/bin/post-setup $tmp.post-setup >/dev/null 2>&1
+	then
+	    : up to date
+	    echo "ok"
+	else
+	    cp $tmp.post-setup $HOME/bin/post-setup
+	    chmod 755 $HOME/bin/post-setup
+	    echo "script updated ... trying again."
+	    $debug && echo "+ $HOME/bin/post-setup -q -e $exec_opts $target $@"
+	    exec $HOME/bin/post-setup -e $exec_opts
+	fi
+    else
+	echo
+	cat $tmp.out
+	echo "Warning, cannot update ... using local version of push script"
+    fi
+fi
+
+# sudo ...
+#
+groups 2>&1 | sed -e 's/$/ /' >$tmp.tmp
+if ! grep -E -q ' (sudo|wheel) ' <$tmp.tmp
+then
+    cat $tmp.tmp
+    echo "Error: you're not in either of the sudo or wheel groups"
+    echo "       you need to run something like this as root ..."
+    echo "       # usermod -aG sudo `id -un`"
+    exit
+fi
+case "`sudo -n id -un 2>&1`"
+in
+    root)	;;
+    *password\ is\ required*)
+		echo "Error: need visudo and NOPASSWD:ALL for sudo or wheel group"
+		exit
+		;;
+    *)		sudo -n id -un 2>&1
+		echo "Botch: unexpected output from sudo -nu id"
+		exit
+		;;
+esac
+$check && echo "Info: sudo: ok"
+
+# Usage: _nmcli connection query expected
+#
+_nmcli()
+{
+    conn="$1"
+    query="$2"
+    expect="$3"
+    value=`sed -n -e "/^$query:/s/$query:[ 	]*//p" <$tmp.status`
+    case "$value"
+    in
+	"$expect")
+	    if $check
+	    then
+		echo "Info: nmcli: $query is OK"
+	    fi
+	    ;;
+	*)
+	    if $check
+	    then
+		echo "Warning: nmcli: $query is \"$value\", expecting \"$expect\""
+	    else
+		if ! sudo nmcli connection modify "$conn" "$query" "$expect" >$tmp.out 2>&1
+		then
+		    cat $tmp.out
+		    echo "Error: nmcli: failed to modify connection $conn $query $expect"
+		    return 1
+		else
+		    echo "Update: nmcli: connection $conn $query $expect (was $value)"
+		    touch $tmp.changed
+		fi
+	    fi
+	    ;;
+    esac
+    return 0
+}
+
+echo "Checking network config ..."
+if which nmcli >/dev/null 2>&1
+then
+    nmcli connection show >$tmp.tmp
+    awk <$tmp.tmp >$tmp.conn '
+BEGIN			{ space = "" }
+$(NF-1) == "ethernet"	{ for (i = 1; i <= NF-3; i++) {
+			    printf "%s%s",space,$i
+			    space = " "
+			  }
+			  print ""
+			}'
+    if [ "`wc -l <$tmp.conn | sed -e 's/  *//g'`" -ne 1 ]
+    then
+	echo "Botch: expected one ethernet interface from ..."
+	cat $tmp.tmp
+	echo "... but got"
+	cat $tmp.conn
+	exit
+    fi
+    conn="`cat $tmp.conn`"
+    if ! nmcli connection show "$conn" >$tmp.status 2>$tmp.err
+    then
+	cat $tmp.err $tmp.status
+	echo "Error: nmcli connection \"$conn\" failed!"
+	exit
+    fi
+    rm -f $tmp.changed
+    _nmcli "$conn" ipv4.addresses "$vm_ipaddr/24" || exit
+    _nmcli "$conn" ipv4.gateway 192.168.20.1 || exit
+    _nmcli "$conn" ipv4.dns 192.168.20.100 || exit
+    _nmcli "$conn" ipv4.dns-search localdomain || exit
+    _nmcli "$conn" ipv4.method manual || exit
+    if [ -f $tmp.changed ]
+    then
+	if sudo nmcli connection down "$conn"
+	then
+	    if sudo nmcli connection up "$conn"
+	    then
+		:
+	    else
+		echo "Error: nmcli connection up \"$conn\" failed!"
+		exit
+	    fi
+	else
+	    echo "Error: nmcli connection down \"$conn\" failed!"
+	    exit
+	fi
+	if $use_systemctl
+	then
+	    if [ "`systemctl is-active systemd-resolved`" = "active" ]
+	    then
+		if sudo systemctl restart systemd-resolved
+		then
+		    :
+		else
+		    echo "Error: systemctl restart systemd-resolved failed!"
+		    exit
+		fi
+	    fi
+	fi
+    else
+	$check && echo "Info: network and DNS: ok"
+    fi
+else
+    echo "Error: no clue how to check/reconfig your network"
+    exit
+fi
+
+echo "Enable console access via virsh ..."
+if $use_systemctl
+then
+    status="`systemctl is-active serial-getty@ttyS0`"
+    if [ "$status" = inactive ]
+    then
+	if $check
+	then
+	    echo "Info: need to start serial-getty@ttyS0 for virsh console"
+	else
+	    if sudo systemctl enable --now serial-getty@ttyS0
+	    then
+		echo "Info: started getty for console via systemctl"
+	    else
+		echo "Error: systemctl enable --now serial-getty@ttyS0 failed!"
+		exit
+	    fi
+	fi
+    elif [ "$status" = active ]
+    then
+	:
+    else
+	echo "status=$status unexpected"
+	echo "Botch: need another recipe for systemctl and virsh console"
+	exit
+    fi
+else
+    echo "Error: need recipe to enable virsh console"
+    exit
+fi
+$check && echo "Info: virsh console: ok"
+
+cd $HOME
+
+echo "Checking git and pcp tree ..."
+if ! which git >/dev/null 2>&1
+then
+    if $check
+    then
+	echo "Info: need to install git"
+    else
+	if sudo $pkg_env $pkg_cmd $pkg_install_options git
+	then
+	    echo "Info: git installed"
+	else
+	    echo "Error: $pkg_cmd install git failed"
+	    exit
+	fi
+    fi
+fi
+if [ ! -d src/pcp ]
+then
+    if $check
+    then
+	echo "Info: need to clone pcp tree"
+    else
+	cd src
+	if ! git clone bozo:git-mirror/pcp.git
+	then
+	    echo "Error: failed to clone pcp tree"
+	    exit
+	fi
+    fi
+else
+    $check && echo "Info: pcp tree: ok"
+fi
+
+list_packages="src/pcp/qa/admin/list-packages"
+if [ ! -x $list_packages ]
+then
+    echo "Botch: can't find list-packages"
+    exit
+fi
+$list_packages -m -x pip3 -x cpan >$tmp.missing
+if [ -s $tmp.missing ]
+then
+    if $check
+    then
+	echo "Info: need to install these required packages for pcp ..."
+	cat $tmp.missing
+    else
+	if sudo $pkg_env $pkg_cmd $pkg_install_options `cat $tmp.missing`
+	then
+	    echo "Info: required packages for pcp installed"
+	else
+	    echo "Error: $pkg_cmd install required packages for pcp failed"
+	    exit
+	fi
+    fi
+else
+    $check && echo "Info: required packages for pcp: ok"
+fi
+
+if ! cd src/pcp
+then
+    echo "Botch: cannot cd to src/pcp"
+    exit
+fi
+echo "Configuring pcp ..."
+if [ ! -f /etc/pcp.conf ]
+then
+    if $check
+    then
+	echo "Info: need to run qa/admin/myconfigure"
+    else
+	if ! qa/admin/myconfigure -q
+	then
+	    echo "Error: qa/admin/myconfigure -q failed"
+	    exit
+	fi
+	cd src/include
+	make
+	sudo make install
+    fi
+else
+    $check && echo "Info: pcp configure: ok"
+fi
+
+echo "Final check ..."
+qa/admin/check-vm --post-setup

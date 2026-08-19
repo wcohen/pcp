@@ -23,6 +23,11 @@ These notes should be read in conjunction with the README notes.
       if /etc/group needed changing, logout and login again, then
       $ sudo id
       should not prompt for a password and return uid=0 and gid=0
+      OpenSUSE Note: may need
+         $ sudo zypper rm sudo-policy-wheel-auth-self
+      to make the change in sudoers take effect
+      To logout and force all crediential to be flushed
+         $ sudo loginctl terminate-user `id -un`
 (g) git clone the PCP tree
     For the QA Farm
       $ cd
@@ -217,8 +222,8 @@ CentOS Stream
     $ sudo dnf install epel-release
 
 openSUSE
-    https://en.opensuse.org/Lifetime
-    11 Sep 2025: 15.6 and 16.0
+    https://en.opensuse.org/openSUSE:Roadmap
+    18 Aug 2026: 15.6 and 16.0
     # which packages are installed
     $ rpm -qa --qf '%{NAME}\n'
     # package search recipe (name and info or description)

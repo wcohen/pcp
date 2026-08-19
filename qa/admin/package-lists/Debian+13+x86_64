@@ -16,7 +16,6 @@ build-essential
 chrpath
 clang
 coreutils
-cppcheck
 cron
 curl
 debhelper
@@ -37,6 +36,7 @@ grep
 iproute2
 jq
 kubernetes-client
+libarchive-zip-perl
 libbpf1
 libbpf-dev
 libclass-dbi-perl
@@ -101,6 +101,7 @@ perl-modules-5.40
 # Debian 13 (trixie)
 libperl-dev
 pkg-config
+postfix
 postgresql-client-common
 psmisc
 pylint
@@ -111,6 +112,7 @@ python3-elasticsearch
 python3-libvirt
 python3-lxml
 python3-openpyxl
+python3-pandas
 python3-pil
 python3-prometheus-client
 python3-psycopg2
@@ -137,7 +139,5 @@ valgrind
 xfsprogs
 xkb-data
 zabbix-agent
-# suspect licensing restrictions are breaking this in CI
-zfsutils-linux not4ci
 zlib1g-dev
 zstd

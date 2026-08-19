@@ -1,7 +1,6 @@
-# PCP required package list for openSUSE 15.6 x86_64
-# created by kenj on vm17 on Tue 23 Jan 2024 20:27:34 AEDT
+# PCP required package list for openSUSE Tumbleweed i686
+# created by kenj on vm19 on Tue Aug 18 05:11:43 PM AEST 2026
 #
-389-ds
 Coin4-devel
 SoQt-devel
 Spreadsheet::Read cpan
@@ -14,7 +13,6 @@ bash
 bc
 bind-utils
 bison
-bpftrace
 ccache
 clang
 coreutils
@@ -40,6 +38,7 @@ git-core
 grep
 iproute2
 jq
+libQt5Core-devel
 libbpf-devel
 libcmocka-devel
 libdrm-devel
@@ -53,7 +52,6 @@ libselinux-devel
 libsqlite3-0
 libuv-devel
 libvirt-daemon
-libvirt-daemon-driver-qemu
 llvm
 mailx
 make
@@ -65,6 +63,7 @@ memcached
 ncurses-devel
 net-tools
 net-tools-deprecated
+nmap
 openssl
 perl
 perl-DBD-mysql
@@ -74,6 +73,7 @@ perl-File-Slurp
 perl-JSON
 perl-List-MoreUtils
 perl-Net-SNMP
+perl-Spreadsheet-Read
 perl-Spreadsheet-ReadSXC
 perl-Spreadsheet-WriteExcel
 perl-Spreadsheet-XLSX
@@ -95,7 +95,9 @@ python313-elasticsearch
 python313-libvirt-python
 python313-lxml
 python313-prometheus-client
+python313-pandas
 python313-psycopg2
+python313-pyarrow
 python313-pylint
 python313-pymongo
 python313-requests

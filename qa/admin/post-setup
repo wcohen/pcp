@@ -9,21 +9,6 @@
 remote=bozo
 remote_ipaddr=192.168.20.100
 
-# for the QA Farm ...
-# vm's ipaddr is last 192.168.20.200 + last 2 digits of vm hostname
-#
-vm_ipaddr="`hostname | sed -e 's/.*\(..\)$/192.168.20.2\1/'`"
-
-case `hostname`
-in
-    $remote|$remote.localdomain)
-    	echo >&2 "Error: never run this script on $remote"
-	exit 1
-	;;
-    *)
-	;;
-esac
-
 tmp=/tmp/post-setup-$$
 sts=1
 trap "rm -f $tmp.*; exit \$sts" 0 1 2 3 15
@@ -67,6 +52,37 @@ do
 done
 shift `expr $OPTIND - 1`
 
+# preliminaries ...
+#
+rm -f $tmp.oops
+for cmd in ping awk hostname pgrep gcc flex bison gmake
+do
+    if ! which $cmd >/dev/null 2>&1
+    then
+	echo "Error: need to install $cmd"
+	touch $tmp.oops
+    fi
+done
+if [ -f $tmp.oops ]
+then
+    echo "... need to fix these first, bye"
+    exit
+fi
+
+# for the QA Farm ...
+# vm's ipaddr is last 192.168.20.200 + last 2 digits of vm hostname
+#
+case `hostname`
+in
+    vm[0-9][0-9])
+	    vm_ipaddr="`hostname | sed -e 's/.*\(..\)$/192.168.20.2\1/'`"
+	    ;;
+    *)
+	    echo "Error: don't know what to do with hostname `hostname` ... expecting vm[0-9][0-9]"
+	    exit
+	    ;;
+esac
+
 if $quick
 then
     :
@@ -86,17 +102,21 @@ else
 	    echo "Error: cannot ping $remote"
 	    exit
 	fi
+	$debug && echo "Debug: using ipaddr $remote_ipaddr instead of hostname $remote"
+	remote=$remote_ipaddr
     fi
     $check && echo "Info: ping: ok"
 fi
 
-# preliminaries ...
-#
-if ! which awk >/dev/null 2>&1
-then
-    echo "Error: need to install awk first"
-    exit
-fi
+case `hostname`
+in
+    $remote|$remote.localdomain)
+    	echo >&2 "Error: never run this script on $remote"
+	exit 1
+	;;
+    *)
+	;;
+esac
 
 # platform specifics ... check for commands and options
 #
@@ -110,12 +130,11 @@ if which apt-get >/dev/null 2>&1
 then
     pkg_env="DEBIAN_FRONTEND=noninteractive"
     pkg_cmd="apt-get"
-    #!# pkg_install_options='-o Dpkg::Options::="--force-confold" -o Dpkg::Options::="--force-confdef" install -y'
     pkg_install_options='-y install'
 elif which zypper >/dev/null 2>&1
 then
     pkg_cmd="zypper"
-    pkg_install_options="-y install"
+    pkg_install_options="--non-interactive install"
 elif which dnf >/dev/null 2>&1
 then
     pkg_cmd="dnf"
@@ -132,11 +151,11 @@ then
     echo "Refreshing $0 script from $remote ..."
     if $use_rsync
     then
-	rsync $RSYNC_PORT $remote:bin/post-setup $tmp.post-setup >$tmp.out 2>&1
+	rsync $remote:src/pcp/qa/admin/post-setup $tmp.post-setup >$tmp.out 2>&1
     else
-	scp $SCP_PORT $remote:bin/post-setup $tmp.post-setup >$tmp.out 2>&1
+	scp $SCP_PORT $remote:src/pcp/qa/admin/post-setup $tmp.post-setup >$tmp.out 2>&1
     fi
-    if [ $? = 0 ]
+    if [ $? = 0 -a -s $tmp.post-setup ]
     then
 	if diff $HOME/bin/post-setup $tmp.post-setup >/dev/null 2>&1
 	then
@@ -165,6 +184,7 @@ then
     echo "Error: you're not in either of the sudo or wheel groups"
     echo "       you need to run something like this as root ..."
     echo "       # usermod -aG sudo `id -un`"
+    echo "       # loginctl terminate-user `id -un`"
     exit
 fi
 case "`sudo -n id -un 2>&1`"
@@ -223,7 +243,7 @@ then
     nmcli connection show >$tmp.tmp
     awk <$tmp.tmp >$tmp.conn '
 BEGIN			{ space = "" }
-$(NF-1) == "ethernet"	{ for (i = 1; i <= NF-3; i++) {
+$(NF-1) ~ /ethernet$/	{ for (i = 1; i <= NF-3; i++) {
 			    printf "%s%s",space,$i
 			    space = " "
 			  }
@@ -269,6 +289,21 @@ $(NF-1) == "ethernet"	{ for (i = 1; i <= NF-3; i++) {
 	then
 	    if [ "`systemctl is-active systemd-resolved`" = "active" ]
 	    then
+		# whack /etc/systemd/resolved.conf
+		#
+		if [ -f /etc/systemd/resolved.conf ]
+		then
+		    sed </etc/systemd/resolved.conf >$tmp.tmp \
+			-e '/^#*DNS=/s/.*/DNS=192.168.20.100/' \
+			-e '/^#*Domains=/s/.*/Domains=localdomain/' \
+		    # end
+		    if diff /etc/systemd/resolved.conf $tmp.tmp
+		    then
+			echo "no diffs"
+		    else
+			echo "diffs"
+		    fi
+		fi
 		if sudo systemctl restart systemd-resolved
 		then
 		    :
@@ -319,6 +354,11 @@ fi
 $check && echo "Info: virsh console: ok"
 
 cd $HOME
+if [ ! -d src ]
+then
+    echo "Error: no src directory below $HOME ... have you run setup-vm from $remote?"
+    exit
+fi
 
 echo "Checking git and pcp tree ..."
 if ! which git >/dev/null 2>&1
@@ -342,41 +382,47 @@ then
     then
 	echo "Info: need to clone pcp tree"
     else
-	cd src
+	if ! cd src
+	then
+	    echo "Error: cannot cd to $HOME/src!"
+	    exit
+	fi
 	if ! git clone bozo:git-mirror/pcp.git
 	then
 	    echo "Error: failed to clone pcp tree"
 	    exit
 	fi
+	cd $HOME
     fi
 else
     $check && echo "Info: pcp tree: ok"
 fi
 
 list_packages="src/pcp/qa/admin/list-packages"
-if [ ! -x $list_packages ]
+if [ ! -f $list_packages ]
 then
-    echo "Botch: can't find list-packages"
-    exit
-fi
-$list_packages -m -x pip3 -x cpan >$tmp.missing
-if [ -s $tmp.missing ]
-then
-    if $check
-    then
-	echo "Info: need to install these required packages for pcp ..."
-	cat $tmp.missing
-    else
-	if sudo $pkg_env $pkg_cmd $pkg_install_options `cat $tmp.missing`
-	then
-	    echo "Info: required packages for pcp installed"
-	else
-	    echo "Error: $pkg_cmd install required packages for pcp failed"
-	    exit
-	fi
-    fi
+    echo "Warning: can't find list-packages ... could be an old tree"
+    $check && echo "Info: required packages for pcp: skipped"
 else
-    $check && echo "Info: required packages for pcp: ok"
+    $list_packages -m -x pip3 -x cpan >$tmp.missing
+    if [ -s $tmp.missing ]
+    then
+	if $check
+	then
+	    echo "Info: need to install these required packages for pcp ..."
+	    cat $tmp.missing
+	else
+	    if sudo $pkg_env $pkg_cmd $pkg_install_options `cat $tmp.missing`
+	    then
+		echo "Info: required packages for pcp installed"
+	    else
+		echo "Error: $pkg_cmd install required packages for pcp failed"
+		exit
+	    fi
+	fi
+    else
+	$check && echo "Info: required packages for pcp: ok"
+    fi
 fi
 
 if ! cd src/pcp
@@ -399,10 +445,129 @@ then
 	cd src/include
 	make
 	sudo make install
+	cd ../..
     fi
 else
-    $check && echo "Info: pcp configure: ok"
+    $check && echo "Info: pcp configure: skipped, /etc/pcp.conf exists"
 fi
+
+echo "Checking /etc/hosts ..."
+vm_hostname=`hostname`
+cat /etc/hosts >$tmp.hosts
+if ! grep -E -q "[ 	]$vm_hostname([ 	]|\$)" /etc/hosts
+then
+    # no entry at all, a la openSUSE
+    #
+    echo "$vm_ipaddr	$vm_hostname.localdomain $vm_hostname" >>$tmp.hosts
+elif grep -E -q "^$vm_ipaddr	$vm_hostname.localdomain $vm_hostname" /etc/hosts >/dev/null 2>&1
+then
+    # already fixed
+    #
+    :
+else
+    # either botched or wrong ipaddr (e.g. 127.0.0.1)
+    #
+    sed -E -e "/[ 	]$vm_hostname([ 	]|\$)/d" <$tmp.hosts >$tmp.tmp
+    echo "$vm_ipaddr	$vm_hostname.localdomain $vm_hostname" >>$tmp.tmp
+    mv $tmp.tmp $tmp.hosts
+fi
+if diff -q /etc/hosts $tmp.hosts >/dev/null 2>&1
+then
+    $check && echo "Info: /etc/hosts: ok"
+else
+    if $check
+    then
+	echo "Info: need to update /etc/hosts"
+    else
+	sudo cp $tmp.hosts /etc/hosts
+    fi
+fi
+
+echo "Checking firewall ..."
+if [ -n "`pgrep firewalld`" ]
+then
+    # firewalld is running
+    #
+    rm -f $tmp.changed
+    sudo firewall-cmd --get-default-zone >$tmp.tmp
+    zone="`cat $tmp.tmp`"
+    if [ -z "$zone" ]
+    then
+	echo "firewall-cmd outout ..."
+	cat $tmp
+	echo "Error: cannot get default zone from firewalld(1)"
+	exit
+    fi
+    if ! sudo firewall-cmd --zone=$zone --list-services >$tmp.out 2>$tmp.err
+    then
+	cat $tmp.err $tmp.out
+	echo "Error: get services from firewalld failed"
+	exit
+    fi
+    sed -e 's/^/ /' -e 's/$/ /' <$tmp.out >$tmp.services
+    if ! sudo firewall-cmd --zone=$zone --list-ports >$tmp.out 2>$tmp.err
+    then
+	cat $tmp.err $tmp.out
+	echo "Error: get ports from firewalld failed"
+	exit
+    fi
+    sed -e 's/^/ /' -e 's/$/ /' <$tmp.out >$tmp.ports
+    for spec in ssh pmcd pmproxy pmwebapi pmwebapis mdns '4320-4350/tcp'
+    do
+	case "$spec"
+	in
+	    *tcp)
+		if grep -q " $spec " $tmp.ports >/dev/null 2>&1
+		then
+		    $check && echo "Info: firewalld port(s) $spec: ok"
+		else
+		    if $check
+		    then
+			echo "Info: firewalld port(s) $spec: needs activation"
+		    else
+			if sudo firewall-cmd --zone=$zone --add-port=$spec --permanent
+			then
+			    echo "Info: firewalld port(s) added: $spec"
+			    touch $tmp.changed
+			else
+			    echo "Error: firewalld adding port(s) $spec failed"
+			    exit
+			fi
+		    fi
+		fi
+		;;
+	    *)
+		if grep -q " $spec " $tmp.services >/dev/null 2>&1
+		then
+		    $check && echo "Info: firewalld service $spec: ok"
+		else
+		    if $check
+		    then
+			echo "Info: firewalld service $spec: needs activation"
+		    else
+			if sudo firewall-cmd --zone=$zone --add-service=$spec --permanent
+			then
+			    echo "Info: firewalld service added: $spec"
+			    touch $tmp.changed
+			else
+			    echo "Error: firewalld adding service $spec failed"
+			    exit
+			fi
+		    fi
+		fi
+		;;
+	esac
+    done
+    if [ -f $tmp.changed ]
+    then
+	if ! sudo systemctl restart firewalld
+	then
+	    echo "Error: failed to restart firewalld systemd service"
+	    exit
+	fi
+    fi
+fi
+
 
 echo "Final check ..."
 qa/admin/check-vm --post-setup

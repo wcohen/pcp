@@ -253,8 +253,8 @@ then
     target_distro_variant=''
     if test -f /etc/os-release
     then
-	grep -q 'ID_LIKE="suse"' /etc/os-release 2>/dev/null && target_distro=suse
-	grep -qi 'opensuse"' /etc/os-release 2>/dev/null && target_distro_variant=opensuse
+	grep -q 'ID_LIKE=".*suse' /etc/os-release 2>/dev/null && target_distro=suse
+	grep -qi 'tumbleweed"' /etc/os-release 2>/dev/null && target_distro_variant=tumbleweed
     fi
     test -f /etc/fedora-release && target_distro=fedora
     test -f /etc/redhat-release && target_distro=redhat
@@ -340,6 +340,7 @@ else
 fi
 AC_SUBST(pcp_platform_paths)
 AC_SUBST(pcp_ps_all_flags)
+echo "Distro: $target_distro $target_distro_variant"
 
 dnl default C and C++ compiler optimization to -O2 -g (latter depends on $gcc_debug)
 if test "$use_optimization" = no
@@ -1518,6 +1519,12 @@ then
 fi
 AC_SUBST(PMDA_RESCTRL, $pmda_resctrl)
 if $pmda_resctrl; then AC_MSG_RESULT(yes); else AC_MSG_RESULT(no); fi
+
+if test -z "$QMAKE" -a "$target_distro_variant" = tumbleweed
+then
+    dnl pro tem, force Qt5 on SUSE Tumbleweed
+    QMAKE=qmake-qt5
+fi
 
 qmake=$QMAKE
 enable_qt=false

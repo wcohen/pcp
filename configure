@@ -3879,8 +3879,8 @@ printf "%s\n" "#define IS_LINUX 1" >>confdefs.h
     target_distro_variant=''
     if test -f /etc/os-release
     then
-	grep -q 'ID_LIKE="suse"' /etc/os-release 2>/dev/null && target_distro=suse
-	grep -qi 'opensuse"' /etc/os-release 2>/dev/null && target_distro_variant=opensuse
+	grep -q 'ID_LIKE=".*suse' /etc/os-release 2>/dev/null && target_distro=suse
+	grep -qi 'tumbleweed"' /etc/os-release 2>/dev/null && target_distro_variant=tumbleweed
     fi
     test -f /etc/fedora-release && target_distro=fedora
     test -f /etc/redhat-release && target_distro=redhat
@@ -3981,6 +3981,7 @@ else
 fi
 
 
+echo "Distro: $target_distro $target_distro_variant"
 
 if test "$use_optimization" = no
 then
@@ -9391,6 +9392,11 @@ PMDA_RESCTRL=$pmda_resctrl
 if $pmda_resctrl; then { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes" >&5
 printf "%s\n" "yes" >&6; }; else { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
 printf "%s\n" "no" >&6; }; fi
+
+if test -z "$QMAKE" -a "$target_distro_variant" = tumbleweed
+then
+        QMAKE=qmake-qt5
+fi
 
 qmake=$QMAKE
 enable_qt=false

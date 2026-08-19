@@ -2158,23 +2158,27 @@ AS_IF([test "x$do_pmdastatsd" = "xcheck"], [
 AC_SUBST(PMDA_STATSD, $pmda_statsd)
 if $pmda_statsd; then AC_MSG_RESULT(yes); else AC_MSG_RESULT(no); fi
 
-dnl Do you have the required qshape script for the postfix PMDA
-dnl The logic here is copied from the PMDA's Install script
+dnl The postfix PMDA needs Perl, so only check if Perl is available.
 pmda_postfix=false
-AC_CHECK_PROGS(QSHAPE, qshape, [], path=[$PATH:/usr/sbin])
-AC_MSG_CHECKING([if the postfix PMDA should be included])
-if test -n "$QSHAPE"
+if $have_perl
 then
-    pmda_postfix=true
-else
-    for script in /usr/share/doc/packages/postfix-doc/auxiliary/qshape/qshape.pl
-    do
-	if test -f "$script"
-	then
-	    pmda_postfix=true
-	    break
-	fi
-    done
+    dnl Do you have the required qshape script for the postfix PMDA
+    dnl The logic here is copied from the PMDA's Install script
+    AC_CHECK_PROGS(QSHAPE, qshape, [], path=[$PATH:/usr/sbin])
+    AC_MSG_CHECKING([if the postfix PMDA should be included])
+    if test -n "$QSHAPE"
+    then
+	pmda_postfix=true
+    else
+	for script in /usr/share/doc/packages/postfix-doc/auxiliary/qshape/qshape.pl
+	do
+	    if test -f "$script"
+	    then
+		pmda_postfix=true
+		break
+	    fi
+	done
+    fi
 fi
 AC_SUBST(PMDA_POSTFIX,$pmda_postfix)
 if $pmda_postfix; then AC_MSG_RESULT(yes); else AC_MSG_RESULT(no); fi

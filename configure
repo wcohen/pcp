@@ -13330,7 +13330,9 @@ printf "%s\n" "yes" >&6; }; else { printf "%s\n" "$as_me:${as_lineno-$LINENO}: r
 printf "%s\n" "no" >&6; }; fi
 
 pmda_postfix=false
-for ac_prog in qshape
+if $have_perl
+then
+            for ac_prog in qshape
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -13379,20 +13381,21 @@ fi
   test -n "$QSHAPE" && break
 done
 
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if the postfix PMDA should be included" >&5
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if the postfix PMDA should be included" >&5
 printf %s "checking if the postfix PMDA should be included... " >&6; }
-if test -n "$QSHAPE"
-then
-    pmda_postfix=true
-else
-    for script in /usr/share/doc/packages/postfix-doc/auxiliary/qshape/qshape.pl
-    do
-	if test -f "$script"
-	then
-	    pmda_postfix=true
-	    break
-	fi
-    done
+    if test -n "$QSHAPE"
+    then
+	pmda_postfix=true
+    else
+	for script in /usr/share/doc/packages/postfix-doc/auxiliary/qshape/qshape.pl
+	do
+	    if test -f "$script"
+	    then
+		pmda_postfix=true
+		break
+	    fi
+	done
+    fi
 fi
 PMDA_POSTFIX=$pmda_postfix
 

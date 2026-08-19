@@ -1,5 +1,5 @@
-# PCP required package list for openSUSE Tumbleweed i686
-# created by kenj on vm19 on Tue Aug 18 05:11:43 PM AEST 2026
+# PCP required package list for openSUSE Tumbleweed x86_64
+# created by kenj on vm32 on Aug 19 2026
 #
 Coin4-devel
 SoQt-devel
@@ -131,3 +131,9 @@ xkeyboard-config
 xz-devel
 zabbix-agent
 zstd
+bpftrace
+kubernetes-client
+kubernetes-kubelet
+389-ds
+libvirt-daemon-driver-qemu
+

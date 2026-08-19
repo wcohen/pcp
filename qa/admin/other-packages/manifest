@@ -750,7 +750,7 @@ pacman?	Net::SNMP		[extra/perl-net-snmp]
 brew?	Net::SNMP		[base Darwin install]
 # -- Archive::Zip
 dpkg?		?		[libarchive-zip-perl]
-rpm?		?		[? {rpm-based, RHEL, Fedora, OpenSuSE, ...}]
+rpm?		?		[perl-Archive-Zip or cpan(Archive::Zip)]
 emerge?		?		[? {Gentoo}]
 pkgin?		?		[? {NetBSD}]
 pkg_add?	?		[p5-Archive-Zip]

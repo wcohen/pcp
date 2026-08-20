@@ -48,7 +48,9 @@ then
     USERADD="echo + useradd"
     GROUPADD="echo + groupadd"
     RCCTL="echo + rcctl"
+    SYSRC="echo + sysrc"
     LDCONFIG="echo + ldconfig"
+    RCSTART="echo + $PCP_RC_DIR"
 else
     show_me=false
     RM=rm
@@ -64,7 +66,9 @@ else
     USERADD=useradd
     GROUPADD=groupadd
     RCCTL=rcctl
+    SYSRC=sysrc
     LDCONFIG=ldconfig
+    RCSTART="$PCP_RC_DIR"
 fi
 
 _cd()
@@ -505,6 +509,16 @@ else
 		pmcd|pmlogger|pmie|pmproxy)
 		    $RCCTL enable $svc
 		    $RCCTL start $svc
+		    ;;
+	    esac
+	elif which sysrc >/dev/null 2>&1
+	then
+	    # FreeBSD
+	    case "$svc"
+	    in
+		pmcd|pmlogger|pmie|pmproxy)
+		    $SYSRC ${svc}_enable=YES
+		    $RCSTART/$svc start
 		    ;;
 	    esac
 	fi

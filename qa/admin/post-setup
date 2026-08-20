@@ -55,7 +55,7 @@ shift `expr $OPTIND - 1`
 # preliminaries ...
 #
 rm -f $tmp.oops
-for cmd in ping awk hostname pgrep gcc flex bison gmake
+for cmd in ping awk hostname pgrep gcc flex bison make
 do
     if ! which $cmd >/dev/null 2>&1
     then
@@ -138,6 +138,10 @@ then
 elif which dnf >/dev/null 2>&1
 then
     pkg_cmd="dnf"
+    pkg_install_options="-y install"
+elif which yum >/dev/null 2>&1
+then
+    pkg_cmd="yum"
     pkg_install_options="-y install"
 else
     echo "Botch: need recipe for system package installer"
@@ -322,10 +326,11 @@ else
 fi
 
 echo "Enable console access via virsh ..."
+rm -f $tmp.consol
 if $use_systemctl
 then
     status="`systemctl is-active serial-getty@ttyS0`"
-    if [ "$status" = inactive ]
+    if [ "$status" = inactive -o "$status" = unknown ]
     then
 	if $check
 	then
@@ -334,20 +339,43 @@ then
 	    if sudo systemctl enable --now serial-getty@ttyS0
 	    then
 		echo "Info: started getty for console via systemctl"
+		touch $tmp.console
 	    else
 		echo "Error: systemctl enable --now serial-getty@ttyS0 failed!"
+		# may need grub reconfiguration to enable console
+		if [ -f /etc/default/grub ]
+		then
+		    echo "Suggest edit /etc/default/grub and append"
+		elif [ -f /etc/sysconfig/grub ] 
+		then
+		    echo "Suggest edit /etc/sysconfig/grub and append"
+		else
+		    echo "Botch: cannot locate your grub config file"
+		    exit
+		fi
+		echo "console=ttyS0,115200 to GRUB_CMDLINE_LINUX, then run"
+		echo "  $ sudo grub2-mkconfig -o /boot/grub2/grub.cfg"
+		if sudo [ ! -f /boot/grub2/grub.cfg ]
+		then
+		    echo "[may not work because /boot/grub2/grub.cfg does not exist]"
+		fi
+		echo "Now reboot, and try again"
 		exit
 	    fi
 	fi
     elif [ "$status" = active ]
     then
-	:
+	# nothing to do
+	touch $tmp.console
     else
 	echo "status=$status unexpected"
 	echo "Botch: need another recipe for systemctl and virsh console"
 	exit
     fi
-else
+fi
+
+if [ ! -f $tmp.console ]
+then
     echo "Error: need recipe to enable virsh console"
     exit
 fi
@@ -360,7 +388,22 @@ then
     exit
 fi
 
-echo "Checking git and pcp tree ..."
+echo "Checking rsync, git and pcp tree ..."
+if ! which rsync >/dev/null 2>&1
+then
+    if $check
+    then
+	echo "Info: need to install rsync"
+    else
+	if sudo $pkg_env $pkg_cmd $pkg_install_options rsync
+	then
+	    echo "Info: rsync installed"
+	else
+	    echo "Error: $pkg_cmd install rsync failed"
+	    exit
+	fi
+    fi
+fi
 if ! which git >/dev/null 2>&1
 then
     if $check
@@ -396,6 +439,40 @@ then
     fi
 else
     $check && echo "Info: pcp tree: ok"
+fi
+
+if [ "$pkg_cmd" = yum -o "$pkg_cmd" = dnf ]
+then
+    # RHEL-based, need EPEL repo
+    #
+    echo "Checking for EPEL repo ..."
+    if $pkg_cmd repolist | grep -q '^epel'
+    then
+	$check && echo "Info: already set up"
+    else
+	if $check
+	then
+	    echo "Info: need to install and enable EPEL repo"
+	else
+	    if sudo $pkg_cmd $pkg_install_options epel-release
+	    then
+		sudo $pkg_cmd clean all
+		sudo $pkg_cmd makecache
+		echo "Info: epel-release repo enabled"
+		if sudo dnf config-manager --set-enabled crb >/dev/null 2>&1
+		then
+		    echo "Info: crb repo enabled"
+		else
+		    if sudo dnf config-manager --set-enabled powertools >/dev/null 2>&1
+		    then
+			echo "Info: powertools repo enabled"
+		    fi
+		fi
+	    else
+		echo "Warning: install of epel-release failed"
+	    fi
+	fi
+    fi
 fi
 
 list_packages="src/pcp/qa/admin/list-packages"

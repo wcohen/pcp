@@ -17,7 +17,6 @@ clang
 # in CI CentOS container already has coreutils-single installed and this
 # conflicts with coreutils
 coreutils not4ci
-cppcheck
 cronie
 curl
 cyrus-sasl
@@ -67,6 +66,7 @@ nmap
 openssl
 openssl-devel
 perl
+perl-Archive-Zip
 perl-autodie
 perl-CPAN
 perl-Date-Manip
@@ -112,6 +112,7 @@ python3-rtslib
 python3-setuptools
 qt5-qtbase-devel
 qt5-qtsvg-devel
+ragel
 rdma-core
 rdma-core-devel
 readline-devel

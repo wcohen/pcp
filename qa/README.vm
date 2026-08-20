@@ -220,10 +220,17 @@ CentOS Stream
     $ sudo dnf config-manager --set-enabled crb
     # - need EPEL repo enabled
     $ sudo dnf install epel-release
+    # dealing with EOL and repo changes
+    $ sudo sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+    $ sudo sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+    $ sudo dnf clean all
+    $ sudo dnf update
 
 openSUSE
     https://en.opensuse.org/openSUSE:Roadmap
     18 Aug 2026: 15.6 and 16.0
+    # Caveats
+    # Tubleweed hangs the installer if less than 2GB Memory in the VM
     # which packages are installed
     $ rpm -qa --qf '%{NAME}\n'
     # package search recipe (name and info or description)

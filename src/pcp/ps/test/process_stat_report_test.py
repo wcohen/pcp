@@ -3,7 +3,7 @@
 import unittest
 from unittest.mock import ANY, MagicMock, Mock, patch
 
-from pcp_ps import PM_CONTEXT_ARCHIVE, ProcessStatReport
+from pcp_ps import PM_CONTEXT_ARCHIVE, ProcessStatReport, needs_previous_values
 
 
 class TestProcessStatReport(unittest.TestCase):
@@ -48,6 +48,16 @@ class TestProcessStatReport(unittest.TestCase):
 
         self.assertEqual(options.print_count, 1)
         print_report.assert_called_once()
+
+    def test_previous_values_are_only_needed_for_cpu_reports(self):
+        default = Mock(universal_flag='all', selective_colum_flag=False)
+        user = Mock(universal_flag='user', selective_colum_flag=False)
+        columns = Mock(universal_flag='all', selective_colum_flag=True,
+                       column_list=['pid', '%cpu'])
+
+        self.assertFalse(needs_previous_values(default))
+        self.assertTrue(needs_previous_values(user))
+        self.assertTrue(needs_previous_values(columns))
 
 
 if __name__ == '__main__':

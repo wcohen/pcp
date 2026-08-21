@@ -39,6 +39,12 @@ PSSTAT_METRICS = ['kernel.uname.nodename', 'kernel.uname.release', 'kernel.uname
 SCHED_POLICY = ['NORMAL', 'FIFO', 'RR', 'BATCH', '', 'IDLE', 'DEADLINE']
 
 
+def needs_previous_values(options):
+    if options.universal_flag in ('user', 'username'):
+        return True
+    return options.selective_colum_flag and '%cpu' in options.column_list
+
+
 class StdoutPrinter:
     def Print(self, args):
         print(args)
@@ -596,15 +602,9 @@ class ProcessStatReport(pmcc.MetricGroupPrinter):
         timestamp = time.strftime(self.processStatOptions.timefmt, ts.struct_time())
         return timestamp
 
-    def __needs_previous_values(self):
-        if self.processStatOptions.universal_flag in ('user', 'username'):
-            return True
-        return (self.processStatOptions.selective_colum_flag and
-                '%cpu' in self.processStatOptions.column_list)
-
     def report(self, manager):
         try:
-            if (self.__needs_previous_values() and
+            if (needs_previous_values(self.processStatOptions) and
                     self.group['proc.psinfo.utime'].netPrevValues is None):
                 return False  # Not ready, skip increment
             if not self.group['hinv.ncpu'].netValues or not self.group['kernel.uname.sysname'].netValues:
@@ -903,7 +903,7 @@ if __name__ == "__main__":
         if manager.type is PM_CONTEXT_ARCHIVE:
             samples = opts.pmGetOptionSamples()
             if samples is not None:
-                # Counter-based process metrics need one previous archive record.
+                # The manager's initial archive fetch precedes its report loop.
                 opts.pmSetOptionSamples(str(samples + 1))
         if not opts.checkOptions():
             raise pmapi.pmUsageErr

@@ -281,11 +281,11 @@ class ProcessStatusUtil:
 
 
     def total_time(self):
-        c_usertime = self.__get_value('proc.psinfo.stime', self.instance)
-        p_guesttime = self.__get_previous_value('proc.psinfo.utime', self.instance)
+        c_usertime = self.__get_value('proc.psinfo.utime', self.instance)
+        c_systemtime = self.__get_value('proc.psinfo.stime', self.instance)
         timefmt = "%H:%M:%S"
-        if c_usertime and p_guesttime is not None:
-            total_time = (c_usertime / 1000) + (p_guesttime / 1000)
+        if c_usertime is not None and c_systemtime is not None:
+            total_time = (c_usertime + c_systemtime) / 1000
         else:
             total_time = 0
         return time.strftime(timefmt, time.gmtime(total_time))
@@ -456,7 +456,7 @@ class ProcessStatusReporter:
             "pid": "Timestamp" + header_indentation + "PID\t\tPPID\t\tTTY\tTIME\t\tCMD",
             "ppid": "Timestamp" + header_indentation + "PID\t\tPPID\t\tTTY\tTIME\t\tCMD",
             "username": "Timestamp" + header_indentation + "USERNAME\t\tPID\t\t%CPU\t%MEM\tVSZ\tRSS\t" +
-                         "TTY\tSTAT\t\tTIME\t\tSTART\t\tCOMMAND",
+                        "TTY\tSTAT\t\tTIME\t\tSTART\t\tCOMMAND",
             "command": "Timestamp" + header_indentation + "PID\t\tPPID\t\tTTY\tTIME\t\tCMD"
         }
         selected_flag = self.processStatOptions.universal_flag
@@ -526,14 +526,14 @@ class ProcessStatusReporter:
                                  "please remove sorting flag or choose another flag for output")
             if self.processStatOptions.sorting_order == '%cpu':
                 output_rows.sort(
-                key=lambda x: float(x.split()[cpu_idx]) if x.split()[cpu_idx].replace('.', '', 1).isdigit()
-                else float('-inf'),
-                reverse=True)
+                    key=lambda x: float(x.split()[cpu_idx]) if x.split()[cpu_idx].replace('.', '', 1).isdigit()
+                    else float('-inf'),
+                    reverse=True)
             elif self.processStatOptions.sorting_order == '%mem':
                 output_rows.sort(
-                key=lambda x: float(x.split()[mem_idx]) if x.split()[mem_idx].replace('.', '', 1).isdigit()
-                else float('-inf'),
-                reverse=True)
+                    key=lambda x: float(x.split()[mem_idx]) if x.split()[mem_idx].replace('.', '', 1).isdigit()
+                    else float('-inf'),
+                    reverse=True)
         if output_rows:
             self.printer(header)
             self.printer('\n'.join(output_rows))
@@ -576,8 +576,9 @@ class ProcessStatReport(pmcc.MetricGroupPrinter):
         process_filter = ProcessFilter(self.processStatOptions)
         stdout = StdoutPrinter()
         printdecorator = NoneHandlingPrinterDecorator(stdout)
-        report = ProcessStatusReporter(process_report, process_filter, interval_in_seconds,
-                                        printdecorator.Print, self.processStatOptions)
+        report = ProcessStatusReporter(
+            process_report, process_filter, interval_in_seconds,
+            printdecorator.Print, self.processStatOptions)
         report.print_report(timestamp, header_indentation, value_indentation)
     def __print_dynamic_report(self, manager,timestamp, header_indentation, value_indentation,interval_in_seconds):
         if self.processStatOptions.debug_mode:
@@ -595,9 +596,16 @@ class ProcessStatReport(pmcc.MetricGroupPrinter):
         timestamp = time.strftime(self.processStatOptions.timefmt, ts.struct_time())
         return timestamp
 
+    def __needs_previous_values(self):
+        if self.processStatOptions.universal_flag in ('user', 'username'):
+            return True
+        return (self.processStatOptions.selective_colum_flag and
+                '%cpu' in self.processStatOptions.column_list)
+
     def report(self, manager):
         try:
-            if self.group['proc.psinfo.utime'].netPrevValues is None:
+            if (self.__needs_previous_values() and
+                    self.group['proc.psinfo.utime'].netPrevValues is None):
                 return False  # Not ready, skip increment
             if not self.group['hinv.ncpu'].netValues or not self.group['kernel.uname.sysname'].netValues:
                 return False
@@ -612,12 +620,11 @@ class ProcessStatReport(pmcc.MetricGroupPrinter):
             if self.processStatOptions.debug_mode:
                 print("Starting report generation")
                 print("Need to print samples: %s" % self.processStatOptions.print_count)
-            if self.processStatOptions.print_count == 0:
-                if self.processStatOptions.debug_mode:
-                    print("Print count exhausted, exiting")
-                sys.exit(0)
             timestamp = self.__get_timestamp()
-            interval_in_seconds = self.timeStampDelta()
+            try:
+                interval_in_seconds = self.timeStampDelta()
+            except AttributeError:
+                interval_in_seconds = 0
             header_indentation = "        " if len(timestamp) < 9 else (len(timestamp) - 7) * " "
             value_indentation = ((len(header_indentation) + 9) - len(timestamp)) * " "
 
@@ -635,6 +642,8 @@ class ProcessStatReport(pmcc.MetricGroupPrinter):
                 self.__print_report(manager,timestamp, header_indentation, value_indentation, interval_in_seconds)
             if self.processStatOptions.context is not PM_CONTEXT_ARCHIVE:
                 self.processStatOptions.print_count -= 1
+                if self.processStatOptions.print_count == 0:
+                    sys.exit(0)
             return True  # Data was printed
         finally:
             sys.stdout.flush()
@@ -733,13 +742,11 @@ class ProcessStatOptions(pmapi.pmOptions):
         self.pmSetLongOptionText(
             "\twchan\tWCHAN \tname of the kernel function in which the process is sleeping"
         )
-        self.pmSetLongOption("", 0, 'u', "",
-                             "Display user-oriented format"
-        )
+        self.pmSetLongOption(
+            "", 0, 'u', "", "Display user-oriented format")
         self.pmSetLongOption(
             "sort", 1, "O", "%cpu,%mem",
-            "sort the process list by %cpu or %mem values "
-        )
+            "sort the process list by %cpu or %mem values ")
         self.pmSetLongOption("", 0, "d", "", "enable debug mode")
         self.pmSetLongOptionVersion()
         self.pmSetLongOptionTimeZone()
@@ -893,6 +900,11 @@ if __name__ == "__main__":
         opts = ProcessStatOptions()
         manager = pmcc.MetricGroupManager.builder(opts, sys.argv)
         ProcessStatOptions.context = manager.type
+        if manager.type is PM_CONTEXT_ARCHIVE:
+            samples = opts.pmGetOptionSamples()
+            if samples is not None:
+                # Counter-based process metrics need one previous archive record.
+                opts.pmSetOptionSamples(str(samples + 1))
         if not opts.checkOptions():
             raise pmapi.pmUsageErr
         missing = manager.checkMissingMetrics(PSSTAT_METRICS)

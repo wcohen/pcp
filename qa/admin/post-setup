@@ -8,6 +8,7 @@
 #
 remote=bozo
 remote_ipaddr=192.168.20.100
+remote_tzone="Australia/Melbourne"
 
 tmp=/tmp/post-setup-$$
 sts=1
@@ -76,6 +77,7 @@ case `hostname`
 in
     vm[0-9][0-9])
 	    vm_ipaddr="`hostname | sed -e 's/.*\(..\)$/192.168.20.2\1/'`"
+	    $debug && echo "Debug: vm_ipaddr=$vm_ipaddr"
 	    ;;
     *)
 	    echo "Error: don't know what to do with hostname `hostname` ... expecting vm[0-9][0-9]"
@@ -104,6 +106,7 @@ else
 	fi
 	$debug && echo "Debug: using ipaddr $remote_ipaddr instead of hostname $remote"
 	remote=$remote_ipaddr
+	$debug && echo "Debug: using ipaddr remote=$remote"
     fi
     $check && echo "Info: ping: ok"
 fi
@@ -117,6 +120,63 @@ in
     *)
 	;;
 esac
+
+# refresh yourself!
+#
+if $refresh
+then
+    echo "Refreshing $0 script from $remote ..."
+    if $use_rsync
+    then
+	rsync $remote:src/pcp/qa/admin/post-setup $tmp.post-setup >$tmp.out 2>&1
+    else
+	scp $SCP_PORT $remote:src/pcp/qa/admin/post-setup $tmp.post-setup >$tmp.out 2>&1
+    fi
+    if [ $? = 0 -a -s $tmp.post-setup ]
+    then
+	if diff $HOME/bin/post-setup $tmp.post-setup >/dev/null 2>&1
+	then
+	    # up to date
+	    $debug && echo "Debug: no changes for the script"
+	else
+	    cp $tmp.post-setup $HOME/bin/post-setup
+	    chmod 755 $HOME/bin/post-setup
+	    echo "script updated ... trying again."
+	    $debug && echo "+ $HOME/bin/post-setup -q -e $exec_opts $target $@"
+	    exec $HOME/bin/post-setup -e $exec_opts
+	fi
+    else
+	echo
+	cat $tmp.out
+	echo "Warning, cannot update ... using local version of push script"
+    fi
+fi
+
+# sudo ...
+#
+groups 2>&1 | sed -e 's/^/ /' -e 's/$/ /' >$tmp.tmp
+if ! grep -E -q ' (sudo|wheel) ' <$tmp.tmp
+then
+    cat $tmp.tmp
+    echo "Error: you're not in either of the sudo or wheel groups"
+    echo "       you need to run something like this as root ..."
+    echo "       # usermod -aG sudo `id -un`"
+    echo "       # loginctl terminate-user `id -un`"
+    exit
+fi
+case "`sudo -n id -un 2>&1`"
+in
+    root)	;;
+    *password\ is\ required*)
+		echo "Error: need visudo and NOPASSWD:ALL for sudo or wheel group"
+		exit
+		;;
+    *)		sudo -n id -un 2>&1
+		echo "Botch: unexpected output from sudo -nu id"
+		exit
+		;;
+esac
+$check && echo "Info: sudo: ok"
 
 # platform specifics ... check for commands and options
 #
@@ -143,67 +203,19 @@ elif which yum >/dev/null 2>&1
 then
     pkg_cmd="yum"
     pkg_install_options="-y install"
+elif which pacman >/dev/null 2>&1
+then
+    pkg_cmd="pacman"
+    pkg_install_options="-Sy"
+elif which pkg >/dev/null 2>&1
+then
+    pkg_cmd="pkg"
+    pkg_install_options="install -y"
 else
     echo "Botch: need recipe for system package installer"
     exit
 fi
-
-# refresh yourself!
-#
-if $refresh
-then
-    echo "Refreshing $0 script from $remote ..."
-    if $use_rsync
-    then
-	rsync $remote:src/pcp/qa/admin/post-setup $tmp.post-setup >$tmp.out 2>&1
-    else
-	scp $SCP_PORT $remote:src/pcp/qa/admin/post-setup $tmp.post-setup >$tmp.out 2>&1
-    fi
-    if [ $? = 0 -a -s $tmp.post-setup ]
-    then
-	if diff $HOME/bin/post-setup $tmp.post-setup >/dev/null 2>&1
-	then
-	    : up to date
-	    echo "ok"
-	else
-	    cp $tmp.post-setup $HOME/bin/post-setup
-	    chmod 755 $HOME/bin/post-setup
-	    echo "script updated ... trying again."
-	    $debug && echo "+ $HOME/bin/post-setup -q -e $exec_opts $target $@"
-	    exec $HOME/bin/post-setup -e $exec_opts
-	fi
-    else
-	echo
-	cat $tmp.out
-	echo "Warning, cannot update ... using local version of push script"
-    fi
-fi
-
-# sudo ...
-#
-groups 2>&1 | sed -e 's/$/ /' >$tmp.tmp
-if ! grep -E -q ' (sudo|wheel) ' <$tmp.tmp
-then
-    cat $tmp.tmp
-    echo "Error: you're not in either of the sudo or wheel groups"
-    echo "       you need to run something like this as root ..."
-    echo "       # usermod -aG sudo `id -un`"
-    echo "       # loginctl terminate-user `id -un`"
-    exit
-fi
-case "`sudo -n id -un 2>&1`"
-in
-    root)	;;
-    *password\ is\ required*)
-		echo "Error: need visudo and NOPASSWD:ALL for sudo or wheel group"
-		exit
-		;;
-    *)		sudo -n id -un 2>&1
-		echo "Botch: unexpected output from sudo -nu id"
-		exit
-		;;
-esac
-$check && echo "Info: sudo: ok"
+$debug && echo "Debug: package installer command: $pkg_env $pkg_cmd $pkg_install_options"
 
 # Usage: _nmcli connection query expected
 #
@@ -241,6 +253,58 @@ _nmcli()
     return 0
 }
 
+# Usage: _sysrc name value
+#
+_sysrc()
+{
+    name="$1"
+    value="$2"
+    ovalue=`sysrc -n "$name"`
+    $debug && echo "Debug: sysrc intial $name=\"$ovalue\""
+    if [ "$ovalue" = "$value" ]
+    then
+	$debug && echo "Debug: sysrc value for $name: ok"
+    else
+	if $check
+	then
+	    echo "TODO: need to set sysrc $name=\"$value\""
+	else
+	    if sudo sysrc $name="$value"
+	    then
+		echo "Info: sysrc set $name=\"$value\""
+	    else
+		echo "Error: sysrc set $name=\"$value\" failed"
+		return 1
+	    fi
+	fi
+    fi
+    return 0
+}
+
+# Usage: _ip "command(s)" tag value
+#
+_ip()
+{
+    cmds="$1"
+    tag="$2"
+    value="$3"
+
+    if ! ip $cmds >$tmp.tmp
+    then
+	cat $tmp.tmp
+	echo "Error: ip $cmds $link failed"
+	return 1
+    fi
+    if ! grep -q -E "(^| )$tag $value( |$)" <$tmp.tmp
+    then
+	cat $tmp.tmp
+	echo "Error: don't know how to change $cmds $tag=$value with ip(1) yet"
+	return 1
+    fi
+    $debug && echo "Debug: ip $cmds $tag $value: ok"
+    return 0
+}
+
 echo "Checking network config ..."
 if which nmcli >/dev/null 2>&1
 then
@@ -262,6 +326,7 @@ $(NF-1) ~ /ethernet$/	{ for (i = 1; i <= NF-3; i++) {
 	exit
     fi
     conn="`cat $tmp.conn`"
+    $debug && echo "Debug: nmcli conn=\"$conn\""
     if ! nmcli connection show "$conn" >$tmp.status 2>$tmp.err
     then
 	cat $tmp.err $tmp.status
@@ -289,44 +354,238 @@ $(NF-1) ~ /ethernet$/	{ for (i = 1; i <= NF-3; i++) {
 	    echo "Error: nmcli connection down \"$conn\" failed!"
 	    exit
 	fi
-	if $use_systemctl
-	then
-	    if [ "`systemctl is-active systemd-resolved`" = "active" ]
-	    then
-		# whack /etc/systemd/resolved.conf
-		#
-		if [ -f /etc/systemd/resolved.conf ]
-		then
-		    sed </etc/systemd/resolved.conf >$tmp.tmp \
-			-e '/^#*DNS=/s/.*/DNS=192.168.20.100/' \
-			-e '/^#*Domains=/s/.*/Domains=localdomain/' \
-		    # end
-		    if diff /etc/systemd/resolved.conf $tmp.tmp
-		    then
-			echo "no diffs"
-		    else
-			echo "diffs"
-		    fi
-		fi
-		if sudo systemctl restart systemd-resolved
-		then
-		    :
-		else
-		    echo "Error: systemctl restart systemd-resolved failed!"
-		    exit
-		fi
-	    fi
-	fi
     else
-	$check && echo "Info: network and DNS: ok"
+	$check && echo "Info: network config: ok"
     fi
+elif which sysrc >/dev/null 2>&1
+then
+    # FreeBSD-style
+    #
+    ifconfig -a | sed >$tmp.tmp -n -e '/^[a-z]/{
+/^lo/b
+s/:.*//p
+}'
+    num_iface="`wc -l <$tmp.tmp | sed -e 's/ //g'`"
+    if [ $num_iface != 1 ]
+    then
+	echo "Botch: expected one ethernet interface from ifconfig but got ..."
+	cat $tmp.tmp
+	exit
+    fi
+    iface="`cat $tmp.tmp`"
+    $debug && echo "Debug: interface=$iface"
+    _sysrc "ifconfig_$iface" "inet $vm_ipaddr netmask 0xffffff00" || exit
+    _sysrc defaultrouter 192.168.20.1 || exit
+elif which ip >/dev/null 2>&1
+then
+    # ip ... like Ubuntu
+    #
+    ip link show | sed >$tmp.tmp -n -e '/^[0-9][0-9]*:/{
+/ lo: /b
+/ docker[0-9][0-9]*: /b
+/ virbr[0-9][0-9]*: /b
+s/^[0-9][0-9]*: //
+s/:.*//p
+}'
+    num_iface="`wc -l <$tmp.tmp | sed -e 's/ //g'`"
+    if [ $num_iface != 1 ]
+    then
+	echo "Botch: expected one ethernet interface from ip link show but got ..."
+	cat $tmp.tmp
+	exit
+    fi
+    iface="`cat $tmp.tmp`"
+    $debug && echo "Debug: interface=$iface"
+    _ip "addr show $iface" inet $vm_ipaddr/24 || exit
+    _ip route "default via" 192.168.20.1
 else
     echo "Error: no clue how to check/reconfig your network"
     exit
 fi
 
+echo "Checking DNS setup ..."
+if $use_systemctl
+then
+    if [ "`systemctl is-active systemd-resolved`" = "active" ]
+    then
+	# whack /etc/systemd/resolved.conf
+	#
+	if [ -f /etc/systemd/resolved.conf ]
+	then
+	    sed </etc/systemd/resolved.conf >$tmp.tmp \
+		-e '/^#*DNS=/s/.*/DNS=192.168.20.100/' \
+		-e '/^#*Domains=/s/.*/Domains=localdomain/' \
+	    # end
+	    if diff /etc/systemd/resolved.conf $tmp.tmp >$tmp.diffs
+	    then
+		$debug && echo "Debug: /etc/systemd/resolved.conf: ok"
+	    else
+		if $check
+		then
+		    echo "TODO: need to fix /etc/systemd/resolved.conf"
+		else
+		    if $debug
+		    then
+			cat $tmp.diffs
+			echo "Debug: /etc/systemd/resolved.conf updated"
+		    fi
+		    sudo cp $tmp.tmp /etc/systemd/resolved.conf
+		fi
+	    fi
+	fi
+	if sudo systemctl restart systemd-resolved
+	then
+	    :
+	else
+	    echo "Error: systemctl restart systemd-resolved failed!"
+	    exit
+	fi
+    fi
+elif which resolvectl >/dev/null 2>&1
+then
+    if resolvectl status >$tmp.tmp 2>&1
+    then
+	if grep -q " DNS Servers*: 192.168.20.100" <$tmp.tmp
+	then
+	    $debug && echo "Debug: resolveconf server: ok"
+	else
+	    if $check
+	    then
+		echo "TODO: need to fix DNS server"
+	    else
+		if sudo resolvectl dns "$iface" 192.168.20.100
+		then
+		    $debug && echo "Debug: set DNS server with resolvectl(1): ok"
+		else
+		    echo "Error: set DNS server with resolvectl(1) failed"
+		    exit
+		fi
+	    fi
+	fi
+	if grep -q " DNS Domain: localdomain" <$tmp.tmp
+	then
+	    $debug && echo "Debug: resolveconf search domain: ok"
+	else
+	    if $check
+	    then
+		echo "TODO: need to fix DNS search domain"
+	    else
+		if sudo resolvectl domain "$iface" localdomain
+		then
+		    $debug && echo "Debug: set DNS search domain with resolvectl(1): ok"
+		else
+		    echo "Error: set DNS search domain with resolvectl(1) failed"
+		    exit
+		fi
+	    fi
+	fi
+    else
+	cat $tmp.tmp
+	echo "Error: resolvectl status failed"
+	exit
+    fi
+elif which resolvconf
+then
+    rm -f $tmp.tmp
+    if grep -q '^nameserver[ 	][ 	]*192.168.20.100$' </etc/resolv.conf
+    then
+	$check && echo "Info: nameserver in resolv.conf: ok"
+    else
+	echo "nameserver 192.168.20.100" >>$tmp.tmp
+    fi
+    if grep -q '^search[ 	][ 	]*localdomain$' </etc/resolv.conf
+    then
+	$check && echo "Info: search in resolv.conf: ok"
+    else
+	echo "search localdomain" >>$tmp.tmp
+    fi
+    if [ -s $tmp.tmp ]
+    then
+	if $check
+	then
+	    echo "TODO: need to fix /etc/resolv.conf"
+	else
+	    if sudo resolvconf -a $iface <$tmp.tmp
+	    then
+		echo "Info: /etc/resolv.conf fixed"
+	    else
+		echo "resolvconf -a $iface sent ..."
+		cat $tmp.tmp
+		echo "Error: attempt to update resolv.conf failed"
+		exit
+	    fi
+	fi
+    fi
+else
+    echo "Error: don't kow how to check/set your DNS resolver"
+    exit
+fi
+
+echo "Checking timezone ..."
+if which timedatectl >/dev/null 2>&1
+then
+    Timezone=''
+    eval `timedatectl show | grep '^Timezone'`
+    if [ "$Timezone" != "$remote_tzone" ]
+    then
+	if $check
+	then
+	    echo "TODO: need to change timezone from $Timezone to $remote_tzone"
+	else
+	    if sudo timedatectl set-timezone "$remote_tzone"
+	    then
+		$debug && echo "Debug: timezone changed from $Timezone to $remote_tzone"
+	    else
+		echo "Error: set timezone to $remote_tzone failed"
+		exit
+	    fi
+	fi
+    fi
+else
+    echo "Botch: need recipe to check/set timezone"
+    exit
+fi
+
+
+# Usage: _ttys tty type setting
+#
+_ttys()
+{
+    tty="$1"
+    type="$2"
+    opts="$3"
+    # assuming /etc/ttys is <tab> separated fields
+    #
+    awk -F '	' </etc/ttys >$tmp.tmp '
+BEGIN			{ OFS = "	" }
+$1 == "'"$tty"'"	{ $3 = "'"$type"'"; $4 = "'"$opts"'" }
+			{ print }'
+    if ! diff -q /etc/ttys $tmp.tmp
+    then
+	if [ ! -f /etc/ttys.post-setup.save ]
+	then
+	    sudo cp /etc/ttys /etc/ttys.post-setup.save
+	fi
+	if sudo cp $tmp.tmp /etc/ttys
+	then
+	    $debug && echo "Debug: /etc/ttys updated"
+	else
+	    echo "Error: updating /etc/ttys failed"
+	    return 1
+	fi
+	if sudo kill -HUP 1
+	then
+	    $debug && echo "Debug: init SIGHUP"
+	else
+	    echo "Error: kill -HUP 1 failed"
+	    return 1
+	fi
+    fi
+    return 0
+}
+
 echo "Enable console access via virsh ..."
-rm -f $tmp.consol
+rm -f $tmp.console
 if $use_systemctl
 then
     status="`systemctl is-active serial-getty@ttyS0`"
@@ -334,7 +593,7 @@ then
     then
 	if $check
 	then
-	    echo "Info: need to start serial-getty@ttyS0 for virsh console"
+	    echo "TODO: need to start serial-getty@ttyS0 for virsh console"
 	else
 	    if sudo systemctl enable --now serial-getty@ttyS0
 	    then
@@ -368,8 +627,26 @@ then
 	# nothing to do
 	touch $tmp.console
     else
-	echo "status=$status unexpected"
+	echo "systemctl status=$status unexpected"
 	echo "Botch: need another recipe for systemctl and virsh console"
+	exit
+    fi
+elif [ -f /etc/ttys ]
+then
+    if grep -q '^ttyu0[ 	]' </etc/ttys
+    then
+	# FreeBSD style
+	#
+	_ttys ttyu0 xterm "on secure" || exit
+	touch $tmp.console
+    elif grep -q '^tty00[ 	]' </etc/ttys
+    then
+	# OpenBSD style
+	#
+	_ttys tty00 xterm "on secure" || exit
+	touch $tmp.console
+    else
+	echo "Error: need recipe to make (or skip) /etc/ttys changes"
 	exit
     fi
 fi
@@ -393,7 +670,7 @@ if ! which rsync >/dev/null 2>&1
 then
     if $check
     then
-	echo "Info: need to install rsync"
+	echo "TODO: need to install rsync"
     else
 	if sudo $pkg_env $pkg_cmd $pkg_install_options rsync
 	then
@@ -408,7 +685,7 @@ if ! which git >/dev/null 2>&1
 then
     if $check
     then
-	echo "Info: need to install git"
+	echo "TODO: need to install git"
     else
 	if sudo $pkg_env $pkg_cmd $pkg_install_options git
 	then
@@ -423,7 +700,7 @@ if [ ! -d src/pcp ]
 then
     if $check
     then
-	echo "Info: need to clone pcp tree"
+	echo "TODO: need to clone pcp tree"
     else
 	if ! cd src
 	then
@@ -452,12 +729,12 @@ then
     else
 	if $check
 	then
-	    echo "Info: need to install and enable EPEL repo"
+	    echo "TODO: need to install and enable EPEL repo"
 	else
-	    if sudo $pkg_cmd $pkg_install_options epel-release
+	    if sudo $pkg_env $pkg_cmd $pkg_install_options epel-release
 	    then
-		sudo $pkg_cmd clean all
-		sudo $pkg_cmd makecache
+		sudo $pkg_env $pkg_cmd clean all
+		sudo $pkg_env $pkg_cmd makecache
 		echo "Info: epel-release repo enabled"
 		if sudo dnf config-manager --set-enabled crb >/dev/null 2>&1
 		then
@@ -475,61 +752,125 @@ then
     fi
 fi
 
+if [ -f /etc/apt/sources.list.d/ubuntu.sources ]
+then
+    echo "Checking for Ubuntu debug packages repo ..."
+    # we need this to install, for example, bpftrace-dbgsym
+    #
+    if [ -f /etc/apt/sources.list.d/ddebs.sources ]
+    then
+	$check && echo "Info: already setup"
+    else
+	# recipe from https://ubuntu.com/server/docs/how-to/debugging/debug-symbol-packages/
+	#
+	if sudo $pkg_env $pkg_cmd $pkg_install_options ubuntu-dbgsym-keyring
+	then
+	    echo >$tmp.tmp "Types: deb
+URIs: http://ddebs.ubuntu.com/
+Suites: $(lsb_release -cs) $(lsb_release -cs)-updates $(lsb_release -cs)-proposed
+Components: main restricted universe multiverse
+Signed-by: /usr/share/keyrings/ubuntu-dbgsym-keyring.gpg"
+	    if sudo cp $tmp.tmp /etc/apt/sources.list.d/ddebs.sources
+	    then
+		echo "Info: repo ddebs.sources setup"
+	    else
+		echo "Warning: repo ddebs.sources setup failed"
+	    fi
+	else
+	    echo "Warning: install of ubuntu-dbgsym-keyring failed"
+	fi
+    fi
+fi
+
+echo "Upgrade to latest packages ..."
+case "$pkg_cmd"
+in
+    apt-get)	if $check
+    		then
+		    echo "TODO: apt-get update; apt-get upgrade"
+		else
+		    if sudo $pkg_env $pkg_cmd update
+		    then
+			if sudo $pkg_env $pkg_cmd upgrade
+			then
+			    $debug && echo "Debug: $pkg_cmd update; $pkg_cmd upgrade: ok"
+			else
+			    echo "Error: $pkg_env $pkg_cmd upgrade failed"
+			    exit
+			fi
+		    else
+			echo "Error: $pkg_env $pkg_cmd update failed"
+			exit
+		    fi
+		fi
+		;;
+	*)
+		echo "Botch: reed recipe to update packages for $pkg_cmd"
+		;;
+esac
+
 list_packages="src/pcp/qa/admin/list-packages"
 if [ ! -f $list_packages ]
 then
-    echo "Warning: can't find list-packages ... could be an old tree"
-    $check && echo "Info: required packages for pcp: skipped"
+echo "Warning: can't find list-packages ... could be an old tree"
+$check && echo "Info: required packages for pcp: skipped"
 else
-    $list_packages -m -x pip3 -x cpan >$tmp.missing
-    if [ -s $tmp.missing ]
+$list_packages -m -x pip3 -x cpan >$tmp.missing
+if [ -s $tmp.missing ]
+then
+    if $check
     then
-	if $check
-	then
-	    echo "Info: need to install these required packages for pcp ..."
-	    cat $tmp.missing
-	else
-	    if sudo $pkg_env $pkg_cmd $pkg_install_options `cat $tmp.missing`
-	    then
-		echo "Info: required packages for pcp installed"
-	    else
-		echo "Error: $pkg_cmd install required packages for pcp failed"
-		exit
-	    fi
-	fi
+	echo "TODO: need to install these required packages for pcp ..."
+	cat $tmp.missing
     else
-	$check && echo "Info: required packages for pcp: ok"
+	if sudo $pkg_env $pkg_cmd $pkg_install_options `cat $tmp.missing`
+	then
+	    echo "Info: required packages for pcp installed"
+	else
+	    echo "Error: $pkg_cmd install required packages for pcp failed"
+	    exit
+	fi
     fi
+else
+    $check && echo "Info: required packages for pcp: ok"
+fi
 fi
 
 if ! cd src/pcp
 then
-    echo "Botch: cannot cd to src/pcp"
-    exit
+echo "Botch: cannot cd to src/pcp"
+exit
 fi
 echo "Configuring pcp ..."
 if [ ! -f /etc/pcp.conf ]
 then
-    if $check
-    then
-	echo "Info: need to run qa/admin/myconfigure"
-    else
-	if ! qa/admin/myconfigure -q
-	then
-	    echo "Error: qa/admin/myconfigure -q failed"
-	    exit
-	fi
-	cd src/include
-	make
-	sudo make install
-	cd ../..
-    fi
+if $check
+then
+    echo "TODO: need to run qa/admin/myconfigure"
 else
-    $check && echo "Info: pcp configure: skipped, /etc/pcp.conf exists"
+    if ! qa/admin/myconfigure -q
+    then
+	echo "Error: qa/admin/myconfigure -q failed"
+	exit
+    fi
+    cd src/include
+    eval "`grep '^PCP_MAKE_PROG=' pcp.conf`"
+    if [ -z "$PCP_MAKE_PROG" -o ! -x "$PCP_MAKE_PROG" ]
+    then
+	echo "Botch: PCP_MAKE_PROG=$PCP_MAKE_PROG looks bad"
+	exit
+    fi
+    $PCP_MAKE_PROG
+    sudo $PCP_MAKE_PROG install
+    cd ../..
+fi
+else
+$check && echo "Info: pcp configure: skipped, /etc/pcp.conf exists"
 fi
 
 echo "Checking /etc/hosts ..."
 vm_hostname=`hostname`
+$debug && echo "Debug: vm_hostname=$vm_hostname"
 cat /etc/hosts >$tmp.hosts
 if ! grep -E -q "[ 	]$vm_hostname([ 	]|\$)" /etc/hosts
 then
@@ -554,7 +895,7 @@ then
 else
     if $check
     then
-	echo "Info: need to update /etc/hosts"
+	echo "TODO: need to update /etc/hosts"
     else
 	sudo cp $tmp.hosts /etc/hosts
     fi
@@ -568,6 +909,7 @@ then
     rm -f $tmp.changed
     sudo firewall-cmd --get-default-zone >$tmp.tmp
     zone="`cat $tmp.tmp`"
+    $debug && echo "Debug: firewalld zone=$zone"
     if [ -z "$zone" ]
     then
 	echo "firewall-cmd outout ..."
@@ -600,7 +942,7 @@ then
 		else
 		    if $check
 		    then
-			echo "Info: firewalld port(s) $spec: needs activation"
+			echo "TODO: firewalld port(s) $spec: needs activation"
 		    else
 			if sudo firewall-cmd --zone=$zone --add-port=$spec --permanent
 			then
@@ -620,7 +962,7 @@ then
 		else
 		    if $check
 		    then
-			echo "Info: firewalld service $spec: needs activation"
+			echo "TODO: firewalld service $spec: needs activation"
 		    else
 			if sudo firewall-cmd --zone=$zone --add-service=$spec --permanent
 			then
@@ -644,7 +986,6 @@ then
 	fi
     fi
 fi
-
 
 echo "Final check ..."
 qa/admin/check-vm --post-setup

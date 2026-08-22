@@ -16,7 +16,6 @@ bpftrace
 chan
 clang
 coreutils
-cppcheck
 cronie
 curl
 cyrus-sasl
@@ -26,6 +25,7 @@ cyrus-sasl-md5
 cyrus-sasl-plain
 device-mapper-devel
 ed
+ethtool
 expect
 flex
 gawk
@@ -64,6 +64,7 @@ net-tools
 nmap
 openssl
 openssl-devel
+perl-Archive-Zip
 perl-CPAN
 perl-DBD-MySQL
 perl-Date-Manip
@@ -110,6 +111,7 @@ python3-setuptools
 qt5-qtbase-devel
 qt5-qtsvg-devel
 ragel
+rdma-core
 rdma-core-devel
 readline-devel
 redis
@@ -128,6 +130,7 @@ sqlite
 sqlite-libs
 sysstat
 sudo
+systemd
 systemd-devel
 targetcli
 time

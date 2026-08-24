@@ -333,7 +333,7 @@ FreeBSD
 
 NetBSD
     http://www.netbsd.org/releases/formal.html
-    11 Sep 2025: 9.4 and 10.1
+    23 Aug 2026: 10.1 and 11.1
     # --- pkgin for pre-build binaries ---
     # which packages are installed
     $ pkg_info -a | sed -e 's/-[0-9].*//'
@@ -532,7 +532,7 @@ OpenBSD
     # package install recipe
     $ sudo pkg_add <package>
     # update all packages recipe
-    $ sudo pkg_add -u
+    $ sudo pkgin update
     # remove a package
     $ sudo pkg_delete <package>
     # unattended release upgrade recipe ... only supported from

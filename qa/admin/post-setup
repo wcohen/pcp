@@ -178,7 +178,7 @@ in
     *password\ is\ required*)
 		echo "Current id ..."
 		id
-		echo "Error: need visudo and NOPASSWD:ALL for sudo or wheel group"
+		echo "Error: need visudo and NOPASSWD: ALL for sudo or wheel group"
 		exit
 		;;
     *)		sudo -n id -un 2>&1
@@ -221,6 +221,11 @@ elif which pkg >/dev/null 2>&1
 then
     pkg_cmd="pkg"
     pkg_install_options="install -y"
+# pkgin has to be before pkg_add because NetBSD has both
+elif which pkgin >/dev/null 2>&1
+then
+    pkg_cmd="pkgin"
+    pkg_install_options="install -y"
 elif which pkg_add >/dev/null 2>&1
 then
     pkg_cmd="pkg_add"
@@ -230,6 +235,22 @@ else
     exit
 fi
 $debug && echo "Debug: package installer command: $pkg_env $pkg_cmd $pkg_install_options"
+
+is_freebsd=false
+is_openbsd=false
+is_netbsd=false
+case "`uname -s`"
+in
+    FreeBSD)	is_freebsd=true
+		$debug && echo "Debug: is_freebsd=$is_freebsd"
+    		;;
+    OpenBSD)	is_openbsd=true
+		$debug && echo "Debug: is_openbsd=$is_openbsd"
+    		;;
+    NetBSD)	is_netbsd=true
+		$debug && echo "Debug: is_netbsd=$is_netbsd"
+    		;;
+esac
 
 # Usage: _nmcli connection query expected
 #
@@ -413,14 +434,16 @@ s/:.*//p
     fi
     iface="`cat $tmp.tmp`"
     $debug && echo "Debug: interface=$iface"
-    if which sysrc >/dev/null 2>&1
+    if $is_freebsd
     then
-	# FreeBSD
+	# FreeBSD-style
 	#
 	_sysrc "ifconfig_$iface" "inet $vm_ipaddr netmask 0xffffff00" || exit
 	_sysrc defaultrouter $gateway || exit
-    elif [ "`uname -s`" = OpenBSD ]
+    elif $is_openbsd
     then
+	# OpenBSD-style
+	#
 	rm -f $tmp.changed
 	echo "inet $vm_ipaddr $subnet_mask NONE" >$tmp.$iface
 	if [ -f /etc/hostname.$iface ]
@@ -477,6 +500,73 @@ s/:.*//p
 		$debug && echo "Debug: network restarted"
 	    else
 		echo "Error: /etc/netstat failed"
+		exit
+	    fi
+	fi
+    elif $isnet_bsd
+    then
+	# MetBSD-style
+	#
+	rm -f $tmp.changed
+	cat <<End-of-File >$tmp.$iface
+up
+media autoselect
+$vm_ipaddr netmask $subnet_mask
+End-of-File
+	if [ -f /etc/ifconfig.$iface ]
+	then
+	    if diff /etc/ifconfig.$iface $tmp.$iface >$tmp.tmp 
+	    then
+		$debug && echo "Debug: /etc/ifconfig.$iface no change"
+	    else
+		if $check
+		then
+		    echo "TODO: need to update /etc/ifconfig.$iface"
+		else
+		    if $debug
+		    then
+			cat $tmp.tmp
+			$debug && echo "Debug: /etc/ifconfig.$iface updated"
+		    fi
+		    sudo cp $tmp.$iface /etc/ifconfig.$iface
+		    touch $tmp.changed
+		fi
+	    fi
+	else
+	    echo "Error: /etc/ifconfig.$iface missing and should be here"
+	    exit
+	fi
+	if [ -f /etc/rc.conf ]
+	then
+	    sudo cat /etc/rc.conf | sed -e "/^defaultroute=/s/=.*/=\"$gateway\"/" >$tmp.conf
+	    if sudo diff /etc/rc.conf $tmp.conf >$tmp.tmp 
+	    then
+		$debug && echo "Debug: /etc/rc.conf no change"
+	    else
+		if $check
+		then
+		    echo "TODO: need to update /etc/rc.conf for defaultroute"
+		else
+		    if $debug
+		    then
+			cat $tmp.tmp
+			$debug && echo "Debug: /etc/rc.conf updated"
+		    fi
+		    sudo cp $tmp.conr /etc/rc.conf
+		    touch $tmp.changed
+		fi
+	    fi
+	else
+	    echo "Error: /etc/rc.conf missing and should be here"
+	    exit
+	fi
+	if [ -f $tmp.changed ]
+	then
+	    if sudo service network restart
+	    then
+		$debug && echo "Debug: network restarted"
+	    else
+		echo "Error: service network restart failed"
 		exit
 	    fi
 	fi
@@ -594,6 +684,7 @@ then
 	then
 	    echo "TODO: need to fix /etc/resolv.conf"
 	else
+	    cp $tmp.tmp /tmp/eek
 	    if sudo resolvconf -a $iface <$tmp.tmp
 	    then
 		echo "Info: /etc/resolv.conf fixed"
@@ -687,7 +778,7 @@ then
     else
 	$check && echo "Info: timezone: ok"
     fi
-elif [ "`uname -s`" = OpenBSD ]
+elif $is_openbsd || $is_netbsd
 then
     if readlink /etc/localtime >$tmp.tmp
     then
@@ -736,7 +827,7 @@ _ttys()
 BEGIN			{ OFS = "	" }
 $1 == "'"$tty"'"	{ $3 = "'"$type"'"; $4 = "'"$opts"'" }
 			{ print }'
-    if ! diff -q /etc/ttys $tmp.tmp
+    if ! diff -q /etc/ttys $tmp.tmp >/dev/null 2>&1
     then
 	if [ ! -f /etc/ttys.post-setup.save ]
 	then
@@ -814,15 +905,15 @@ then
     fi
 elif [ -f /etc/ttys ]
 then
-    if grep -q '^ttyu0[ 	]' </etc/ttys
+    if $is_freebsd
     then
 	# FreeBSD style
 	#
 	_ttys ttyu0 xterm "on secure" || exit
 	touch $tmp.console
-    elif grep -q '^tty00[ 	]' </etc/ttys
+    elif $is_openbsd || $is_netbsd
     then
-	# OpenBSD style
+	# OpenBSD or NetBSD style
 	#
 	_ttys tty00 xterm "on secure" || exit
 	touch $tmp.console
@@ -849,36 +940,26 @@ then
 fi
 
 echo "Checking rsync, git and pcp tree ..."
-if ! which rsync >/dev/null 2>&1
-then
-    if $check
+# these make my QA life easier
+#
+for cmd in rsync git vim
+do
+    if ! which $cmd >/dev/null 2>&1
     then
-	echo "TODO: need to install rsync"
-    else
-	if sudo $pkg_env $pkg_cmd $pkg_install_options rsync
+	if $check
 	then
-	    echo "Info: rsync installed"
+	    echo "TODO: need to install $cmd"
 	else
-	    echo "Error: $pkg_cmd install rsync failed"
-	    exit
+	    if sudo $pkg_env $pkg_cmd $pkg_install_options $cmd
+	    then
+		echo "Info: $cmd installed"
+	    else
+		echo "Error: $pkg_cmd install $cmd failed"
+		exit
+	    fi
 	fi
     fi
-fi
-if ! which git >/dev/null 2>&1
-then
-    if $check
-    then
-	echo "TODO: need to install git"
-    else
-	if sudo $pkg_env $pkg_cmd $pkg_install_options git
-	then
-	    echo "Info: git installed"
-	else
-	    echo "Error: $pkg_cmd install git failed"
-	    exit
-	fi
-    fi
-fi
+done
 if [ ! -d src/pcp ]
 then
     if $check
@@ -1071,6 +1152,17 @@ in
 		    if ! sudo $pkg_env $pkg_cmd -I -u
 		    then
 			echo "Error: $pkg_env $pkg_cmd -I -u failed"
+			exit
+		    fi
+		fi
+		;;
+    pkgin)	if $check
+    		then
+		    echo "Info: $pkg_cmd update: skipped for -c"
+		else
+		    if ! sudo $pkg_env $pkg_cmd update
+		    then
+			echo "Error: $pkg_env $pkg_cmd update failed"
 			exit
 		    fi
 		fi

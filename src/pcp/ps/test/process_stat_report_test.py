@@ -7,10 +7,15 @@ from pcp_ps import PM_CONTEXT_ARCHIVE, ProcessStatReport, needs_previous_values
 
 
 class TestProcessStatReport(unittest.TestCase):
-    def _report(self, options, previous_values):
+    def _report(self, options, utime_previous_values, stime_previous_values):
         group = MagicMock()
-        group.__getitem__.return_value.netPrevValues = previous_values
-        group.__getitem__.return_value.netValues = [object()]
+        utime = MagicMock(netPrevValues=utime_previous_values, netValues=[object()])
+        stime = MagicMock(netPrevValues=stime_previous_values, netValues=[object()])
+        metric = MagicMock(netValues=[object()])
+        group.__getitem__.side_effect = lambda name: {
+            'proc.psinfo.utime': utime,
+            'proc.psinfo.stime': stime,
+        }.get(name, metric)
         report = ProcessStatReport(group, options)
         report.Machine_info_count = 1
         return report
@@ -18,7 +23,7 @@ class TestProcessStatReport(unittest.TestCase):
     def test_default_report_does_not_wait_for_previous_values(self):
         options = Mock(context=None, debug_mode=False, print_count=1,
                        selective_colum_flag=False, universal_flag='all')
-        report = self._report(options, None)
+        report = self._report(options, None, None)
 
         with patch.object(report, '_ProcessStatReport__get_timestamp', return_value='00:00:00'), \
              patch.object(report, 'timeStampDelta', side_effect=AttributeError), \
@@ -31,7 +36,7 @@ class TestProcessStatReport(unittest.TestCase):
     def test_user_report_waits_for_previous_values(self):
         options = Mock(context=None, debug_mode=False, print_count=1,
                        selective_colum_flag=False, universal_flag='user')
-        report = self._report(options, None)
+        report = self._report(options, object(), None)
 
         self.assertFalse(report.report(Mock()))
 
@@ -39,7 +44,7 @@ class TestProcessStatReport(unittest.TestCase):
         options = Mock(context=PM_CONTEXT_ARCHIVE, debug_mode=False,
                        print_count=1, selective_colum_flag=False,
                        universal_flag='all')
-        report = self._report(options, object())
+        report = self._report(options, object(), object())
 
         with patch.object(report, '_ProcessStatReport__get_timestamp', return_value='00:00:00'), \
              patch.object(report, 'timeStampDelta', return_value=1.0), \
@@ -54,10 +59,13 @@ class TestProcessStatReport(unittest.TestCase):
         user = Mock(universal_flag='user', selective_colum_flag=False)
         columns = Mock(universal_flag='all', selective_colum_flag=True,
                        column_list=['pid', '%cpu'])
+        non_cpu_columns = Mock(universal_flag='user', selective_colum_flag=True,
+                               column_list=['pid', 'args'])
 
         self.assertFalse(needs_previous_values(default))
         self.assertTrue(needs_previous_values(user))
         self.assertTrue(needs_previous_values(columns))
+        self.assertFalse(needs_previous_values(non_cpu_columns))
 
 
 if __name__ == '__main__':

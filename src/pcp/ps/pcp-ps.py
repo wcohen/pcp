@@ -40,9 +40,9 @@ SCHED_POLICY = ['NORMAL', 'FIFO', 'RR', 'BATCH', '', 'IDLE', 'DEADLINE']
 
 
 def needs_previous_values(options):
-    if options.universal_flag in ('user', 'username'):
-        return True
-    return options.selective_colum_flag and '%cpu' in options.column_list
+    if options.selective_colum_flag:
+        return '%cpu' in options.column_list
+    return options.universal_flag in ('user', 'username')
 
 
 class StdoutPrinter:
@@ -605,7 +605,7 @@ class ProcessStatReport(pmcc.MetricGroupPrinter):
     def report(self, manager):
         try:
             if (needs_previous_values(self.processStatOptions) and
-                    self.group['proc.psinfo.utime'].netPrevValues is None):
+                    self.group['proc.psinfo.stime'].netPrevValues is None):
                 return False  # Not ready, skip increment
             if not self.group['hinv.ncpu'].netValues or not self.group['kernel.uname.sysname'].netValues:
                 return False
@@ -900,7 +900,7 @@ if __name__ == "__main__":
         opts = ProcessStatOptions()
         manager = pmcc.MetricGroupManager.builder(opts, sys.argv)
         ProcessStatOptions.context = manager.type
-        if manager.type is PM_CONTEXT_ARCHIVE:
+        if manager.type is PM_CONTEXT_ARCHIVE and needs_previous_values(opts):
             samples = opts.pmGetOptionSamples()
             if samples is not None:
                 # The manager's initial archive fetch precedes its report loop.

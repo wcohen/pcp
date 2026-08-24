@@ -91,7 +91,8 @@ _build_allpkgs()
     RHEL|Fedora|CentOS|openSUSE|SUSE\ SLES)
 	if which zypper >/dev/null 2>&1
 	then
-	    : TODO
+	    echo >&2 "Botch: _build_allpkgs(): no recipe for rpm $distro"
+	    exit 1
 	elif which dnf >/dev/null 2>&1
 	then
 	    ( dnf list available; dnf list installed ) 2>&1 \
@@ -112,11 +113,11 @@ _build_allpkgs()
 	;;
 
     NetBSD)
-	# TODO
+	pkgin avail | sed -e 's/-[0-9].*//' >$tmp.allpkgs
 	;;
 
     FreeBSD)
-	# TODO
+	pkg search -L name . | sed -e 's/ .*//' >$tmp.allpkgs
 	;;
 
     OpenBSD)
@@ -135,16 +136,9 @@ p
 }'
 	;;
 
-    Gentoo)
-	# TODO
-	;;
-
-    Darwin)
-	# TODO
-	;;
-
-    OpenIndiana)
-	# TODO
+    *)
+	echo >&2 "Botch: _build_allpkgs(): no recipe for $distro"
+	exit 1
 	;;
 
     Slackware)

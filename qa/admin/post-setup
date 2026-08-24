@@ -221,11 +221,14 @@ elif which pkg >/dev/null 2>&1
 then
     pkg_cmd="pkg"
     pkg_install_options="install -y"
-# pkgin has to be before pkg_add because NetBSD has both
+# pkgin has to be before pkg_add in this compound
+# if-elif-elif-else-fi because NetBSD has both and we need
+# to use pkgin for NetBSD
+#
 elif which pkgin >/dev/null 2>&1
 then
     pkg_cmd="pkgin"
-    pkg_install_options="install -y"
+    pkg_install_options="-y install"
 elif which pkg_add >/dev/null 2>&1
 then
     pkg_cmd="pkg_add"
@@ -251,6 +254,11 @@ in
 		$debug && echo "Debug: is_netbsd=$is_netbsd"
     		;;
 esac
+is_rawhide=false
+if [ -f /etc/redhat-release ] && grep -q Rawhide /etc/redhat-release
+then
+    is_rawhide=true
+fi
 
 # Usage: _nmcli connection query expected
 #
@@ -536,12 +544,12 @@ End-of-File
 	    echo "Error: /etc/ifconfig.$iface missing and should be here"
 	    exit
 	fi
-	if [ -f /etc/rc.conf ]
+	if [ -r /etc/rc.conf ]
 	then
-	    sudo cat /etc/rc.conf | sed -e "/^defaultroute=/s/=.*/=\"$gateway\"/" >$tmp.conf
+	    cat /etc/rc.conf | sed -e "/^defaultroute=/s/=.*/=\"$gateway\"/" >$tmp.conf
 	    if sudo diff /etc/rc.conf $tmp.conf >$tmp.tmp 
 	    then
-		$debug && echo "Debug: /etc/rc.conf no change"
+		$debug && echo "Debug: /etc/rc.conf no change for defaultroute"
 	    else
 		if $check
 		then
@@ -550,14 +558,14 @@ End-of-File
 		    if $debug
 		    then
 			cat $tmp.tmp
-			$debug && echo "Debug: /etc/rc.conf updated"
+			$debug && echo "Debug: /etc/rc.conf defaultroute updated"
 		    fi
-		    sudo cp $tmp.conr /etc/rc.conf
+		    sudo cp $tmp.conf /etc/rc.conf
 		    touch $tmp.changed
 		fi
 	    fi
 	else
-	    echo "Error: /etc/rc.conf missing and should be here"
+	    echo "Error: /etc/rc.conf not readable or missing and should be here"
 	    exit
 	fi
 	if [ -f $tmp.changed ]
@@ -672,7 +680,7 @@ then
     else
 	echo "nameserver $nameserver" >>$tmp.tmp
     fi
-    if grep -q '^search[ 	][ 	]*$domain$' </etc/resolv.conf
+    if grep -q -E '^search.*[ 	]'$domain'([ 	]|$)' </etc/resolv.conf
     then
 	$check && echo "Info: search in resolv.conf: ok"
     else
@@ -682,8 +690,56 @@ then
     then
 	if $check
 	then
+	    cat $tmp.tmp
 	    echo "TODO: need to fix /etc/resolv.conf"
 	else
+	    if $is_netbsd
+	    then
+		# stop dhcpcd whacking /etc/resolv.conf
+		#
+		if pgrep dhcpcd >/dev/null
+		then
+		    # Need this line in /etc/rc.conf
+		    # dhcpcd_flags="-C resolv.conf"
+		    # but there may already be a dhcpcd_flags="..." line present
+		    #
+		    if [ -r /etc/rc.conf ]
+		    then
+			if grep -q '^dhcpcd_flags=.*[" ]-C resolv.conf[ "]' /etc/rc.conf
+			then
+			    $debug && echo "Debug: /etc/rc.conf no change for dhcpcd_flags"
+			else
+			    if $check
+			    then
+				echo "TODO: need to update /etc/rc.conf for dhcpcd_flags"
+			    else
+				$debug && echo "Debug: /etc/rc.conf dhcpcd_flags updated"
+				# try editing first
+				sed </etc/rc.conf >$tmp.conf \
+				    -e '/^dhcpcd_flags=/s/"$/ -C resolv.conf"/'
+				if ! grep -q '^dhcpcd_flags=.*[" ]-C resolv.conf[ "]' $tmp.conf
+				then
+				    # didn't work, so append a new line
+				    echo 'dhcpcd_flags="-C resolv.conf"' >>$tmp.conf
+				fi
+				if ! sudo cp $tmp.conf /etc/rc.conf
+				then
+				    echo "Error: sudo cp $tmp.conf /etc/rc.conf failed"
+				    exit
+				fi
+				if ! sudo service dhcpcd restart
+				then
+				    echo "Error: sudo service dhcpcd restart failed"
+				    exit
+				fi
+			    fi
+			fi
+		    else
+			echo "Error: /etc/rc.conf not readable or missing and should be here"
+			exit
+		    fi
+		fi
+	    fi
 	    cp $tmp.tmp /tmp/eek
 	    if sudo resolvconf -a $iface <$tmp.tmp
 	    then
@@ -986,7 +1042,7 @@ fi
 # - EPEL for RHEL and CentOS
 # - debug packages for Ubuntu
 #
-if [ "$pkg_cmd" = yum -o "$pkg_cmd" = dnf ]
+if [ "$pkg_cmd" = yum -o "$pkg_cmd" = dnf ] && ! $is_rawhide
 then
     # RHEL-based, need EPEL repo
     #
@@ -1160,7 +1216,7 @@ in
     		then
 		    echo "Info: $pkg_cmd update: skipped for -c"
 		else
-		    if ! sudo $pkg_env $pkg_cmd update
+		    if ! sudo $pkg_env $pkg_cmd -y update
 		    then
 			echo "Error: $pkg_env $pkg_cmd update failed"
 			exit
@@ -1258,8 +1314,9 @@ if $check
 then
     echo "TODO: need to run qa/admin/myconfigure"
 else
-    if ! qa/admin/myconfigure -q
+    if ! qa/admin/myconfigure -q >$tmp.tmp 2>&1
     then
+	cat $tmp.tmp
 	echo "Error: qa/admin/myconfigure -q failed"
 	exit
     fi
@@ -1270,8 +1327,18 @@ else
 	echo "Botch: PCP_MAKE_PROG=$PCP_MAKE_PROG looks bad"
 	exit
     fi
-    $PCP_MAKE_PROG
-    sudo $PCP_MAKE_PROG install
+    if ! $PCP_MAKE_PROG >$tmp.tmp 2>&1
+    then
+	cat $tmp.tmp
+	echo "Error: make in src/include failed"
+	exit
+    fi
+    if ! sudo $PCP_MAKE_PROG install >$tmp.tmp 2>&1
+    then
+	cat $tmp.tmp
+	echo "Error: sudo make install in src/include failed"
+	exit
+    fi
     cd ../..
 fi
 else

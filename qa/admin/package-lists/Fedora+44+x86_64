@@ -67,6 +67,7 @@ nmap
 openssl
 openssl-devel
 perl
+perl-Archive-Zip
 perl-CPAN
 perl-DBD-MySQL
 perl-Date-Manip

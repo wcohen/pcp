@@ -2625,7 +2625,7 @@ _all_ipaddrs()
 /^vnet/					{ skip = 1; next }
 /^docker/				{ skip = 1; next }
 /^cni-podman/				{ skip = 1; next }
-/^vibr/					{ skip = 1; next }
+/^virbr/				{ skip = 1; next }
 /^[a-z]/				{ loopback = 0 }
 /^lo/					{ loopback = 1; next }
 skip == 1 && NF > 0			{ next }

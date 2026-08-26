@@ -682,8 +682,10 @@ tags="debian redhat centos suse arch mandriva freebsd netbsd openbsd"
 # Append original line numbers for non-blank lines in the manifest.
 # Also rewrite [? ...] (package unknown) to [?:<original line number> ...]
 # for easier mapping back to the manifest file.
+# And strip {...} (usually comments in [...]
 #
-$PCP_AWK_PROG 'NF > 0 { gsub("\\[\\?", "[?:" NR); print $0 " :" NR }' <$manifest >$tmp.manifest
+$PCP_AWK_PROG 'NF > 0 { gsub("\\[\\?", "[?:" NR); print $0 " :" NR }' <$manifest \
+| sed -E >$tmp.manifest -e '/\{/s/(\[.*)\{[^}]*}(.*])/\1\2/'
 
 if which $PCP_PYTHON_PROG >/dev/null 2>&1
 then
@@ -1072,14 +1074,14 @@ do
     rm -f $tmp.ok
     rm -f $tmp.echo
 
-    if $all
-    then
-	# don't do any of this ...
-	#
-	:
-    else
-	for app in $apps
-	do
+    for app in $apps
+    do
+	if $all
+	then
+	    # don't do any of this ...
+	    #
+	    :
+	else
 	    # leading ! negates the guard
 	    case $app
 	    in
@@ -1165,7 +1167,7 @@ do
 		    $PCP_ECHO_PROG >&2 $PCP_ECHO_N "yes "$PCP_ECHO_C
 		else
 		    $PCP_ECHO_PROG >&2 $PCP_ECHO_N "no "$PCP_ECHO_C
-		fi
+		    fi
 		touch $tmp.echo
 	    fi
 	    if [ $ok = 0 ]
@@ -1182,6 +1184,13 @@ do
 		touch $tmp.ok
 		break
 	    else
+		# skip packages not in allpkgs
+		#
+		if ! grep -q "^$app\$" $tmp.allpkgs
+		then
+		    $very_verbose && echo >&2 "Info: ignore $app, not in repo"
+		    continue
+		fi
 		if $optional
 		then
 		    # guard not true, skip checks for other apps
@@ -1189,8 +1198,8 @@ do
 		    break
 		fi
 	    fi
-	done
-    fi
+	fi
+    done
 
     if [ ! -f $tmp.ok ]
     then

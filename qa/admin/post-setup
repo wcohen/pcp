@@ -160,106 +160,6 @@ in
 	;;
 esac
 
-# sudo ...
-#
-groups 2>&1 | sed -e 's/^/ /' -e 's/$/ /' >$tmp.tmp
-if ! grep -E -q ' (sudo|wheel) ' <$tmp.tmp
-then
-    cat $tmp.tmp
-    echo "Error: you're not in either of the sudo or wheel groups"
-    echo "       you need to run something like this as root ..."
-    echo "       # usermod -aG sudo `id -un`"
-    echo "       # loginctl terminate-user `id -un`"
-    exit
-fi
-case "`sudo -n id -un 2>&1`"
-in
-    root)	;;
-    *password\ is\ required*)
-		echo "Current id ..."
-		id
-		echo "Error: need visudo and NOPASSWD: ALL for sudo or wheel group"
-		exit
-		;;
-    *)		sudo -n id -un 2>&1
-		echo "Botch: unexpected output from sudo -nu id"
-		exit
-		;;
-esac
-$check && echo "Info: sudo: ok"
-
-# platform specifics ... check for commands and options
-#
-use_rsync=false
-which rsync >/dev/null 2>&1 && use_rsync=true
-use_systemctl=false
-which systemctl >/dev/null 2>&1 && use_systemctl=true
-
-pkg_env=""
-if which apt-get >/dev/null 2>&1
-then
-    pkg_env="DEBIAN_FRONTEND=noninteractive"
-    pkg_cmd="apt-get"
-    pkg_install_options='-y install'
-elif which zypper >/dev/null 2>&1
-then
-    pkg_cmd="zypper"
-    pkg_install_options="--non-interactive install"
-elif which dnf >/dev/null 2>&1
-then
-    pkg_cmd="dnf"
-    pkg_install_options="-y install"
-elif which yum >/dev/null 2>&1
-then
-    pkg_cmd="yum"
-    pkg_install_options="-y install"
-elif which pacman >/dev/null 2>&1
-then
-    pkg_cmd="pacman"
-    pkg_install_options="-Sy"
-elif which pkg >/dev/null 2>&1
-then
-    pkg_cmd="pkg"
-    pkg_install_options="install -y"
-# pkgin has to be before pkg_add in this compound
-# if-elif-elif-else-fi because NetBSD has both and we need
-# to use pkgin for NetBSD
-#
-elif which pkgin >/dev/null 2>&1
-then
-    pkg_cmd="pkgin"
-    pkg_install_options="-y install"
-elif which pkg_add >/dev/null 2>&1
-then
-    pkg_cmd="pkg_add"
-    pkg_install_options="-I"
-else
-    echo "Botch: need recipe for system package installer"
-    exit
-fi
-$debug && echo "Debug: package installer command: $pkg_env $pkg_cmd $pkg_install_options"
-
-is_freebsd=false
-is_openbsd=false
-is_netbsd=false
-case "`uname -s`"
-in
-    FreeBSD)	is_freebsd=true
-		$debug && echo "Debug: is_freebsd=$is_freebsd"
-    		;;
-    OpenBSD)	is_openbsd=true
-		$debug && echo "Debug: is_openbsd=$is_openbsd"
-    		;;
-    NetBSD)	is_netbsd=true
-		$debug && echo "Debug: is_netbsd=$is_netbsd"
-    		;;
-esac
-is_rawhide=false
-if [ -f /etc/redhat-release ] && grep -q Rawhide /etc/redhat-release
-then
-    is_rawhide=true
-fi
-
 # Usage: _nmcli connection query expected
 #
 _nmcli()
@@ -343,11 +243,224 @@ _ip()
     then
 	cat $tmp.tmp
 	echo "Error: don't know how to change $cmds $tag=$value with ip(1) yet"
+	echo "For addr, need something like ..."
+	echo '$ sudo ip addr del <existing ipaddr> dev <iface>'
+	echo '$ sudo ip addr add '"$vm_ipaddr"' dev <iface>'
 	return 1
     fi
     $debug && echo "Debug: ip $cmds $tag $value: ok"
     return 0
 }
+
+# Usage: _ttys tty type setting
+#
+_ttys()
+{
+    tty="$1"
+    type="$2"
+    opts="$3"
+    # assuming /etc/ttys is <tab> separated fields
+    #
+    awk -F '	' </etc/ttys >$tmp.tmp '
+BEGIN			{ OFS = "	" }
+$1 == "'"$tty"'"	{ $3 = "'"$type"'"; $4 = "'"$opts"'" }
+			{ print }'
+    if ! diff -q /etc/ttys $tmp.tmp >/dev/null 2>&1
+    then
+	if [ ! -f /etc/ttys.post-setup.save ]
+	then
+	    if ! sudo cp /etc/ttys /etc/ttys.post-setup.save
+	    then
+		echo "Error: updating /etc/ifconfig.$iface failed"
+		exit
+	    fi
+	fi
+	if sudo cp $tmp.tmp /etc/ttys
+	then
+	    $debug && echo "Debug: /etc/ttys updated"
+	else
+	    echo "Error: updating /etc/ttys failed"
+	    return 1
+	fi
+	if sudo kill -HUP 1
+	then
+	    $debug && echo "Debug: init SIGHUP"
+	else
+	    echo "Error: kill -HUP 1 failed"
+	    return 1
+	fi
+    fi
+    return 0
+}
+
+# Usage: _ufw port blah
+#
+_ufw()
+{
+    if sudo ufw status | grep -q "^$1[ 	].*ALLOW.*$2"
+    then
+	$debug && echo "Debug: ufw $1 already configured"
+    elif $check
+    then
+	echo "TODO: configure ufw $1"
+    elif sudo ufw allow "$1" comment "$2"
+    then
+	$debug && echo "Debug: ufw $1 configured"
+    else
+	echo "Error: ufw allow $1 comment $2 failed"
+	return 1
+    fi
+    return 0
+}
+
+# Usage: _sudo cmd args ...
+#
+_sudo()
+{
+    if ! sudo "$@"
+    then
+	echo "Error: sudo $* failed"
+	return 1
+    else
+	return 0
+    fi
+}
+
+# sudo ...
+#
+groups 2>&1 | sed -e 's/^/ /' -e 's/$/ /' >$tmp.tmp
+if ! grep -E -q ' (sudo|wheel) ' <$tmp.tmp
+then
+    cat $tmp.tmp
+    echo "Error: you're not in either of the sudo or wheel groups"
+    echo "       you need to run something like this as root ..."
+    echo "       # usermod -aG sudo `id -un`"
+    echo "       # loginctl terminate-user `id -un`"
+    exit
+fi
+case "`sudo -n id -un 2>&1`"
+in
+    root)	;;
+    *password\ is\ required*)
+		echo "Current id ..."
+		id
+		echo "Error: need visudo and NOPASSWD: ALL for sudo or wheel group"
+		exit
+		;;
+    *)		sudo -n id -un 2>&1
+		echo "Botch: unexpected output from sudo -nu id"
+		exit
+		;;
+esac
+$check && echo "Info: sudo: ok"
+
+# platform specifics ... check for commands and options
+#
+use_rsync=false
+if which rsync >/dev/null 2>&1
+then
+    use_rsync=true
+    $debug && echo "Debug: use_rsync=$use_rsync"
+fi
+use_systemctl=false
+# check if systemd is PID 0, so it is running, not just the
+# binary installed
+#
+if [ "`ps -p 1 -o comm=`" = systemd ]
+then
+    use_systemctl=true
+    $debug && echo "Debug: use_systemctl=$use_systemctl"
+fi
+
+pkg_env=""
+if which apt-get >/dev/null 2>&1
+then
+    pkg_env="DEBIAN_FRONTEND=noninteractive"
+    pkg_cmd="apt-get"
+    pkg_install_options='-y install'
+elif which zypper >/dev/null 2>&1
+then
+    pkg_cmd="zypper"
+    pkg_install_options="--non-interactive install"
+elif which dnf >/dev/null 2>&1
+then
+    pkg_cmd="dnf"
+    pkg_install_options="-y install"
+elif which yum >/dev/null 2>&1
+then
+    pkg_cmd="yum"
+    pkg_install_options="-y install"
+elif which pacman >/dev/null 2>&1
+then
+    pkg_cmd="pacman"
+    pkg_install_options="-Sy"
+elif which pkg >/dev/null 2>&1
+then
+    pkg_cmd="pkg"
+    pkg_install_options="install -y"
+# pkgin has to be before pkg_add in this compound
+# if-elif-elif-else-fi because NetBSD has both and we need
+# to use pkgin for NetBSD
+#
+elif which pkgin >/dev/null 2>&1
+then
+    pkg_cmd="pkgin"
+    pkg_install_options="-y install"
+elif which pkg_add >/dev/null 2>&1
+then
+    pkg_cmd="pkg_add"
+    pkg_install_options="-I"
+else
+    echo "Botch: need recipe for system package installer"
+    exit
+fi
+$debug && echo "Debug: package installer command: $pkg_env $pkg_cmd $pkg_install_options"
+
+# Figure out what sort of OS and distribution you are, for cases where
+# that makes a difference in what follows ...
+#
+is_freebsd=false
+is_openbsd=false
+is_netbsd=false
+case "`uname -s`"
+in
+    FreeBSD)	is_freebsd=true
+		$debug && echo "Debug: is_freebsd=$is_freebsd"
+    		;;
+    OpenBSD)	is_openbsd=true
+		$debug && echo "Debug: is_openbsd=$is_openbsd"
+    		;;
+    NetBSD)	is_netbsd=true
+		$debug && echo "Debug: is_netbsd=$is_netbsd"
+    		;;
+esac
+is_rawhide=false
+if [ -f /etc/redhat-release ] && grep -q Rawhide /etc/redhat-release
+then
+    is_rawhide=true
+    $debug && echo "Debug: is_rawhide=$is_rawhide"
+fi
+is_fedora=false
+if ! $is_rawhide
+then
+    if [ -f /etc/fedora-release ]
+    then
+	is_fedora=true
+	$debug && echo "Debug: is_fedora=$is_fedora"
+    fi
+fi
+is_linux_mx=false
+if [ -f /etc/lsb-release ] && grep -q '^DISTRIB_ID=MX$' /etc/lsb-release
+then
+    is_linux_mx=true
+    $debug && echo "Debug: is_linux_mx=$is_linux_mx"
+fi
+is_amazon_linux=false
+if [ -f /etc/amazon-linux-release ]
+then
+    is_amazon_linux=true
+    $debug && echo "Debug: is_amazon_linux=$is_amazon_linux"
+fi
 
 # network ... IPv4 static, gateway and DNS for some platforms
 #
@@ -421,8 +534,73 @@ s/:.*//p
     fi
     iface="`cat $tmp.tmp`"
     $debug && echo "Debug: interface=$iface"
-    _ip "addr show $iface" inet $vm_ipaddr/24 || exit
-    _ip route "default via" $gateway || exit
+    if $use_systemctl && \
+       [ -d /etc/systemd/network ] && \
+       [ "`systemctl is-active systemd-networkd`" = "active" ]
+    then
+	# systemd-networkd a la AmazonLinux 2023
+	#
+	target="`echo /etc/systemd/network/*.network`"
+	case "$target"
+	in
+	    ''|*\**|*\ *)
+		    echo "Botch: expecting one .network file for systemd-networkd, but found ..."
+		    echo \""$target\""
+		    exit
+		    ;;
+	esac
+	$debug && echo "Debug: systemd-networkd target=$target"
+	if ! cp "$target" $tmp.network
+	then
+	    echo "Error: cp "$target" $tmp.network failed"
+	    exit
+	fi
+	awk <$tmp.network >$tmp.tmp '
+$1 == "[Network]"	{ network = 1
+			  print
+			  print "Address='$vm_ipaddr'/24"
+			  print "Gateway='$gateway'"
+			  print "DNS='$nameserver'"
+			  network = 1
+			  next
+			}
+/^\[/ && network == 1	{ network = 0 }
+network == 1		{ next }
+			{ print }'
+	if diff -q $tmp.network $tmp.tmp >/dev/null
+	then
+	    $debug && echo "Debug: no changes to $target"
+	else
+	    if $debug
+	    then
+		echo "Debug: changes to $target"
+		_sudo cp $tmp.tmp "$target"
+		_sudo systemctl restart systemd-networkd || exit
+	    fi
+	fi
+	# and now magic sauce thanks to claude ...
+	#
+	if $is_amazon_linux
+	then
+	    if [ ! -d /etc/cloud/cloud.cfg.d ]
+	    then
+		echo "Error: dir /etc/cloud/cloud.cfg.d does not exist"
+		exit
+	    fi
+	    target=/etc/cloud/cloud.cfg.d/99-qa-farm-disable-config.cfg
+	    if [ -f "$target" ]
+	    then
+		$debug && echo "Debug: $target exists, assumed to be ok"
+	    else
+		echo "network: {config: disable}" >$tmp.tmp
+		_sudo cp $tmp.tmp "$target"
+		$debug && echo "Debug: $target created"
+	    fi
+	fi
+    else
+	_ip "addr show $iface" inet $vm_ipaddr/24 || exit
+	_ip route "default via" $gateway || exit
+    fi
 elif which ifconfig >/dev/null 2>&1
 then
     # BSD-styles
@@ -469,8 +647,13 @@ s/:.*//p
 			cat $tmp.tmp
 			$debug && echo "Debug: /etc/hostname.$iface updated"
 		    fi
-		    sudo cp $tmp.$iface /etc/hostname.$iface
-		    touch $tmp.changed
+		    if sudo cp $tmp.$iface /etc/hostname.$iface
+		    then
+			touch $tmp.changed
+		    else
+			echo "Error: updating /etc/hostname.$iface failed"
+			exit
+		    fi
 		fi
 	    fi
 	else
@@ -493,8 +676,13 @@ s/:.*//p
 			cat $tmp.tmp
 			$debug && echo "Debug: /etc/mygate updated"
 		    fi
-		    sudo cp $tmp.mygate /etc/mygate
-		    touch $tmp.changed
+		    if sudo cp $tmp.mygate /etc/mygate
+		    then
+			touch $tmp.changed
+		    else
+			echo "Error: updating /etc/mygate failed"
+			exit
+		    fi
 		fi
 	    fi
 	else
@@ -536,8 +724,13 @@ End-of-File
 			cat $tmp.tmp
 			$debug && echo "Debug: /etc/ifconfig.$iface updated"
 		    fi
-		    sudo cp $tmp.$iface /etc/ifconfig.$iface
-		    touch $tmp.changed
+		    if sudo cp $tmp.$iface /etc/ifconfig.$iface
+		    then
+			touch $tmp.changed
+		    else
+			echo "Error: updating /etc/ifconfig.$iface failed"
+			exit
+		    fi
 		fi
 	    fi
 	else
@@ -560,8 +753,13 @@ End-of-File
 			cat $tmp.tmp
 			$debug && echo "Debug: /etc/rc.conf defaultroute updated"
 		    fi
-		    sudo cp $tmp.conf /etc/rc.conf
-		    touch $tmp.changed
+		    if sudo cp $tmp.conf /etc/rc.conf
+		    then
+			touch $tmp.changed
+		    else
+			echo "Error: updating /etc/rc.conf failed"
+			exit
+		    fi
 		fi
 	    fi
 	else
@@ -582,7 +780,6 @@ End-of-File
 	echo "Error: no clue how to reconfigure your network"
 	exit
     fi
-
 else
     echo "Error: no clue how to check your network"
     exit
@@ -616,7 +813,11 @@ then
 			cat $tmp.diffs
 			echo "Debug: /etc/systemd/resolved.conf updated"
 		    fi
-		    sudo cp $tmp.tmp /etc/systemd/resolved.conf
+		    if ! sudo cp $tmp.tmp /etc/systemd/resolved.conf
+		    then
+			echo "Error: updating /etc/systemd/resolved.conf failed"
+			exit
+		    fi
 		fi
 	    fi
 	fi
@@ -724,12 +925,12 @@ then
 				fi
 				if ! sudo cp $tmp.conf /etc/rc.conf
 				then
-				    echo "Error: sudo cp $tmp.conf /etc/rc.conf failed"
+				    echo "Error: updating /etc/rc.conf failed"
 				    exit
 				fi
 				if ! sudo service dhcpcd restart
 				then
-				    echo "Error: sudo service dhcpcd restart failed"
+				    echo "Error: service dhcpcd restart failed"
 				    exit
 				fi
 			    fi
@@ -774,9 +975,18 @@ then
 		cat $tmp.tmp
 		$debug && echo "Debug: /etc/resolv.conf updated"
 	    fi
-	    sudo cp $tmp.conf /etc/resolv.conf
+	    if ! sudo cp $tmp.conf /etc/resolv.conf
+	    then
+		echo "Error: updating /etc/resolv.conf failed"
+		exit
+	    fi
 	fi
     fi
+elif which nmcli >/dev/null 2>&1
+then
+    # done already in the network section above
+    #
+    :
 else
     echo "Error: don't kow how to check/set your DNS resolver"
     exit
@@ -789,7 +999,7 @@ fi
 # Timezone
 #
 echo "Checking timezone ..."
-if which timedatectl >/dev/null 2>&1
+if $use_systemctl && which timedatectl >/dev/null 2>&1
 then
     Timezone=''
     eval `timedatectl show | grep '^Timezone'`
@@ -834,7 +1044,7 @@ then
     else
 	$check && echo "Info: timezone: ok"
     fi
-elif $is_openbsd || $is_netbsd
+elif $is_openbsd || $is_netbsd || $is_linux_mx
 then
     if readlink /etc/localtime >$tmp.tmp
     then
@@ -865,47 +1075,26 @@ then
 	echo "Error: readlink failed for /etc/localtime"
 	exit
     fi
+elif [ -f /etc/timezone ]
+then
+    # old style, like Ubuntu 14.04
+    #
+    if [ "`cat /etc/timezone`" = "$timezone" ]
+    then
+	$debug && echo "Debug: timezone no change"
+    else
+	$debug && echo "Debug timezone: `cat /etc/timezone` -> $timezone"
+	echo "$timezone" >$tmp.tmp
+	if ! sudo cp $tmp.tmp /etc/timezone
+	then
+	    echo "Error: updating /etc/timezone failed"
+	    exit
+	fi
+    fi
 else
     echo "Botch: need recipe to check/set timezone"
     exit
 fi
-
-# Usage: _ttys tty type setting
-#
-_ttys()
-{
-    tty="$1"
-    type="$2"
-    opts="$3"
-    # assuming /etc/ttys is <tab> separated fields
-    #
-    awk -F '	' </etc/ttys >$tmp.tmp '
-BEGIN			{ OFS = "	" }
-$1 == "'"$tty"'"	{ $3 = "'"$type"'"; $4 = "'"$opts"'" }
-			{ print }'
-    if ! diff -q /etc/ttys $tmp.tmp >/dev/null 2>&1
-    then
-	if [ ! -f /etc/ttys.post-setup.save ]
-	then
-	    sudo cp /etc/ttys /etc/ttys.post-setup.save
-	fi
-	if sudo cp $tmp.tmp /etc/ttys
-	then
-	    $debug && echo "Debug: /etc/ttys updated"
-	else
-	    echo "Error: updating /etc/ttys failed"
-	    return 1
-	fi
-	if sudo kill -HUP 1
-	then
-	    $debug && echo "Debug: init SIGHUP"
-	else
-	    echo "Error: kill -HUP 1 failed"
-	    return 1
-	fi
-    fi
-    return 0
-}
 
 # Ensure getty is running on the console tty so that on $remote
 # (the VM host)
@@ -977,8 +1166,80 @@ then
 	echo "Error: need recipe to make (or skip) /etc/ttys changes"
 	exit
     fi
-fi
+elif [ -f /etc/inittab ]
+then
+    if grep -q ' ttyS0 ' /etc/inittab >$tmp.tmp
+    then
+	if grep -q '^T0:2345:' /etc/inittab
+	then
+	    # already enabled
+	    #
+	    $debug && echo "Debug: no changes for /etc/inittab"
+	else
+	    if $check
+	    then
+		echo "TODO: need to edit /etc/inittab"
+	    else
+		sed </etc/inittab >$tmp.tmp \
+		    -e '/ ttyS0 /{
+s/^#//
+s/T0:[0-9]*:/T0:2345:/
+}'
+		if ! sudo cp $tmp.tmp /etc/inittab
+		then
+		    echo "Error: updating /etc/inittab failed"
+		    exit
+		fi
+		if ! sudo telinit q
+		then
+		    echo "Error: telinit q failed"
+		    exit
+		fi
+	    fi
+	fi
+	touch $tmp.console
+    else
+	echo "Error: no entry for ttyS0 in /etc/inittab"
+	exit
+    fi
+elif [ -f /etc/init/tty1.conf ]
+then
+    # old style, like Ubuntu 14.04
+    #
+    if [ -f /etc/init/ttyS0.conf ]
+    then
+	# already enabled
+	#
+	$debug && echo "Debug: /etc/init/ttyS0.conf already exists"
+    else
+	if $check
+	then
+	    echo "TODO: need to setup /etc/init/ttyS0.conf"
+	else
+	    cat <<'End-of-File' >$tmp.tmp
+# ttyS0 - getty
+# From ken's post-setup script.
 
+start on stopped rc RUNLEVEL=[2345]
+stop on runlevel [!2345]
+
+respawn
+exec /sbin/getty -L 115200 ttyS0 xterm
+End-of-File
+	    if ! sudo cp $tmp.tmp /etc/init/ttyS0.conf
+	    then
+		echo "Error: updating /etc/inittab failed"
+		exit
+	    fi
+	    if ! sudo start ttyS0
+	    then
+		echo "Error: start ttyS0 failed"
+		exit
+	    fi
+	fi
+    fi
+    touch $tmp.console
+fi
 if [ ! -f $tmp.console ]
 then
     echo "Error: need recipe to enable virsh console"
@@ -1042,7 +1303,8 @@ fi
 # - EPEL for RHEL and CentOS
 # - debug packages for Ubuntu
 #
-if [ "$pkg_cmd" = yum -o "$pkg_cmd" = dnf ] && ! $is_rawhide
+if [ "$pkg_cmd" = yum -o "$pkg_cmd" = dnf ] && \
+    ! $is_rawhide && ! $is_amazon_linux && ! $is_fedora
 then
     # RHEL-based, need EPEL repo
     #
@@ -1156,9 +1418,9 @@ in
     		then
 		    echo "Info: $pkg_cmd update; $pkg_cmd upgrade: skipped for -c"
 		else
-		    if sudo $pkg_env $pkg_cmd update
+		    if sudo $pkg_env $pkg_cmd update -y
 		    then
-			if sudo $pkg_env $pkg_cmd upgrade
+			if sudo $pkg_env $pkg_cmd upgrade -y
 			then
 			    $debug && echo "Debug: $pkg_cmd update; $pkg_cmd upgrade: ok"
 			else
@@ -1175,7 +1437,7 @@ in
     		then
 		    echo "Info: $pkg_cmd update: skipped for -c"
 		else
-		    if ! sudo $pkg_env $pkg_cmd update
+		    if ! sudo $pkg_env $pkg_cmd update -y
 		    then
 			echo "Error: $pkg_env $pkg_cmd update failed"
 			exit
@@ -1186,7 +1448,7 @@ in
     		then
 		    echo "Info: $pkg_cmd update; $pkg_cmd upgrade: skipped for -c"
 		else
-		    if sudo $pkg_env $pkg_cmd update
+		    if sudo $pkg_env $pkg_cmd update -y
 		    then
 			if sudo $pkg_env $pkg_cmd upgrade -y
 			then
@@ -1262,19 +1524,28 @@ s///
 s/^manifest:[0-9][0-9]* //
 p
 }'
-    if [ -s $tmp.tmp ]
+    # now skip any ones already commented out in $mylist
+    cat $tmp.tmp \
+    | while read pkg
+    do
+	if ! grep -q "^#$pkg" <"$mylist"
+	then
+	    echo "$pkg" >>$tmp.additional
+	fi
+    done
+    if [ -f $tmp.additional ]
     then
 	if $check
 	then
 	    echo "TODO: these need be added to $mylist ..."
-	    cat $tmp.tmp
+	    cat $tmp.additional
 	else
-	    cat $tmp.tmp >>"$mylist"
 	    if $debug
 	    then
-		echo "Debug: changes to $mylist ..."
-		git diff "$mylist"
+		echo "Debug: additions to $mylist ..."
+		cat $tmp.additional
 	    fi
+	    cat $tmp.additional >>"$mylist"
 	fi
 	sed <$tmp.check >$tmp.tmp \
 	    -e '/: not in packing list, but available?$/d'
@@ -1372,7 +1643,11 @@ else
     then
 	echo "TODO: need to update /etc/hosts"
     else
-	sudo cp $tmp.hosts /etc/hosts
+	if ! sudo cp $tmp.hosts /etc/hosts
+	then
+	    echo "Error: updating /etc/hosts failed"
+	    exit
+	fi
     fi
 fi
 
@@ -1382,7 +1657,6 @@ if [ -n "`pgrep firewalld`" ]
 then
     # firewalld is running
     #
-    touch $tmp.firewall
     rm -f $tmp.changed
     sudo firewall-cmd --get-default-zone >$tmp.tmp
     zone="`cat $tmp.tmp`"
@@ -1462,8 +1736,19 @@ then
 	    exit
 	fi
     fi
-else
-    $debug && echo "Info: firewalld not running"
+    touch $tmp.firewall
+elif which ufw >/dev/null 2>&1 && ( sudo ufw status | grep -q active )
+then
+    _ufw 44321/tcp pmcd || exit
+    _ufw 44322/tcp pmproxy || exit
+    _ufw 44323/tcp pmwebapi || exit
+    #TODO# ??? _ufw 44324/tcp pmwebapis || exit
+    _ufw 5353/udp mDNS || exit
+    for port in `seq 4320 4350`
+    do
+	_ufw $port/tcp PCPQA || exit
+    done
+    touch $tmp.firewall
 fi
 if [ ! -f $tmp.firewall ]
 then

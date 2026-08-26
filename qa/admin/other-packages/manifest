@@ -1325,7 +1325,7 @@ slackpkg?	valkey-server	[N/A (QA optional)]
 pacman?		valkey-server	[extra/valkey (QA optional)]
 brew?		valkey-server	[valkey (QA optional)]
 # -- valkeysearch (pmproxy, pmsearch QA)
-dpkg?		valkeysearch.so		[? {dpkg-based, Debian, Ubuntu, LinuxMint, MX, ...}]
+dpkg?		valkeysearch.so		[valkey-search {dpkg-based, Debian, Ubuntu, LinuxMint, MX, ...}]
 rpm?		/usr/lib*/valkey/modules/valkeysearch.so	[ValkeySearch (QA optional)]
 emerge?		valkeysearch.so		[? {Gentoo}]
 pkgin?		valkeysearch.so		[N/A]

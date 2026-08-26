@@ -15,6 +15,7 @@ _usage()
     echo >&2 "  -i tag       include only lines with a tag"
     echo >&2 "  -m           list only missing packages"
     echo >&2 "  -n           report my packing-list file and quit"
+    echo >&2 "  -u           update => -c + fixups"
     echo >&2 "  -v           verbose (debugging)"
     echo >&2 "  -V version   override platform version"
     echo >&2 "  -x tag       exclude lines with a tag"
@@ -155,7 +156,12 @@ END		{ exit sts }'
 		avail="`grep "^$pkg\$" <$tmp.allpkgs`"
 		if [ -z "$avail" ]
 		then
-		    echo "manifest:$lineno $pkg: in packing list, but not available?"
+		    if $update
+		    then
+			echo "$pkg" >>$tmp.del
+		    else
+			echo "manifest:$lineno $pkg: in packing list, but not available?"
+		    fi
 		else
 		    touch $tmp.ok
 		    # keep going so we check all the pkg in $pkgs from the
@@ -225,11 +231,16 @@ END		{ exit sts }'
 			then
 			    if [ "$pkg" = "$avail" ]
 			    then
-				if [ "$avail" = "$installed" ]
+				if $update
 				then
-				    echo "manifest:$lineno $pkg: not in packing list, but already installed?"
+				    echo "$pkg" >>$tmp.add
 				else
-				    echo "manifest:$lineno $pkg: not in packing list, but available?"
+				    if [ "$avail" = "$installed" ]
+				    then
+					echo "manifest:$lineno $pkg: not in packing list, but already installed?"
+				    else
+					echo "manifest:$lineno $pkg: not in packing list, but available?"
+				    fi
 				fi
 			    else
 				navail=`echo "$avail" | wc -w | sed -e 's/ //g'`
@@ -278,7 +289,12 @@ END		{ exit sts }'
 	avail="`grep "^$pkg\$" <$tmp.allpkgs`"
 	if [ -z "$avail" ]
 	then
-	    echo "$pkg: in packing list but not available"
+	    if $update
+	    then
+		echo "$pkg" >>$tmp.del
+	    else
+		echo "$pkg: in packing list but not available"
+	    fi
 	fi
     done
 
@@ -300,11 +316,11 @@ END		{ exit sts }'
     # any duplicates in the packing list are also a problem
     #
     sort $tmp.list | uniq -c \
-    | sed -e '/^ *1 /d' -e 's/^ *[0-9][0-9]* //' >$tmp.tmp
-    if [ -s $tmp.tmp ]
+    | sed -e '/^ *1 /d' -e 's/^ *[0-9][0-9]* //' >$tmp.dup
+    if [ -s $tmp.dup ]
     then
 	echo "Duplicated in packing list ..."
-	_fmt 72 <$tmp.tmp | sed -e 's/^/    /'
+	_fmt 72 <$tmp.dup | sed -e 's/^/    /'
     fi
 }
 
@@ -317,7 +333,8 @@ exclude=''
 missing=false
 check=false
 nflag=false
-while getopts 'A:cD:i:mnvV:x:?' p
+update=false
+while getopts 'A:cD:i:mnuvV:x:?' p
 do
     case "$p"
     in
@@ -342,6 +359,10 @@ do
 		;;
 
 	n)	nflag=true
+		;;
+
+	u)	check=true
+		update=true
 		;;
 
 	v)	if $verbose
@@ -680,6 +701,57 @@ mv $tmp.tmp $tmp.list
 if $check
 then
     _do_check
+    if $update
+    then
+	# updates?
+	#
+	cp "$home/package-lists/${distro}+${version}+${arch}" $tmp.new
+	if [ -f $tmp.dup ]
+	then
+	    if $verbose
+	    then
+		echo >&2 "Info: duplicate packages to be fixed ..."
+		_fmt 72 <$tmp.dup | sed -e 's/^/    /'
+	    fi
+	    # simply delete and add
+	    #
+	    cat $tmp.dup >>$tmp.del
+	    cat $tmp.dup >>$tmp.add
+	fi
+	if [ -f $tmp.del ]
+	then
+	    if $verbose
+	    then
+		echo >&2 "Info: packages to be deleted ..."
+		_fmt 72 <$tmp.del | sed -e 's/^/    /'
+	    fi
+	    sort $tmp.del | uniq \
+	    | while read pkg
+	    do
+		awk <$tmp.new >$tmp.tmp '
+$0 == "'"$pkg"'"	{ next }
+			{ print }'
+		mv $tmp.tmp $tmp.new
+	    done
+	fi
+	if [ -f $tmp.add ]
+	then
+	    if $verbose
+	    then
+		echo >&2 "Info: packages to be added ..."
+		_fmt 72 <$tmp.add | sed -e 's/^/    /'
+	    fi
+	fi
+	if ! diff -q "$home/package-lists/${distro}+${version}+${arch}" $tmp.new
+	then
+	    if $verbose
+	    then
+		echo "Diffs after update ..."
+		diff -u "$home/package-lists/${distro}+${version}+${arch}" $tmp.new
+	    fi
+	    cp $tmp.new "$home/package-lists/${distro}+${version}+${arch}"
+	fi
+    fi
     status=0
     exit
 fi

@@ -13,7 +13,6 @@ bison
 bpftrace
 clang
 coreutils-single | coreutils not4ci
-cppcheck
 cronie
 curl-minimal
 cyrus-sasl
@@ -59,6 +58,7 @@ nmap
 openssl
 openssl-devel
 perl
+perl-Archive-Zip
 perl-CPAN
 perl-DBD-MySQL
 perl-Date-Manip
@@ -121,3 +121,5 @@ xfsprogs
 xkeyboard-config
 xz-devel
 zstd
+libbpf
+libbpf-devel

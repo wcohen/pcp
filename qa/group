@@ -2344,14 +2344,14 @@ suse
 1854 pmlogger pmimport local
 1855 pmda.rabbitmq local
 1856 dstat python local derive
-1861:reserved pmsearch local
+1861 pmsearch help local
 1862 other local
 1863 logutil pmlogger_daily local
 1864 logutil pmlogger_daily local
 1869 logutil pmlogger_daily local
 1870 guidellm2pcp python pmimport libpcp_import local
 1871 pmsearch local
-1872 pmproxy local pmjson
+1872 pmsearch pmproxy help local pmjson
 1874 pmseries pmproxy local pmjson
 1875 pmseries pmproxy libpcp_web local
 1876:retired pmcd secure local

@@ -57,7 +57,8 @@ ifneq "$(HAVE_LIBINIH)" "true"
 LCFLAGS += -Iinih
 endif
 
-LCFLAGS += $(C99_CFLAGS) -DJSMN_PARENT_LINKS=1 -DJSMN_STRICT=1 -DHTTP_PARSER_STRICT=0 -Ideps \
+LCFLAGS += $(C99_CFLAGS) \
+	   -DJSMN_PARENT_LINKS=1 -DJSMN_STRICT=1 -DHTTP_PARSER_STRICT=0 -Ideps \
 	   -I$(TOPDIR)/vendor/github.com/valkey-io/libvalkey/include \
 	   -I$(TOPDIR)/vendor/github.com/valkey-io/libvalkey/src
 
@@ -67,6 +68,13 @@ LCFLAGS += $(LIBUVCFLAGS) -DHAVE_LIBUV=1
 LLDLIBS += $(LIB_FOR_LIBUV)
 else
 CFILES += nodiscover.c nologgroup.c nowebgroup.c notimer.c
+endif
+
+ifeq "$(HAVE_SQLITE3)" "true"
+LCFLAGS += $(SQLITE3CFLAGS)
+LLDLIBS += $(LIB_FOR_SQLITE3)
+else
+CFILES := $(subst search.c,nosearch.c,$(CFILES))
 endif
 
 ifeq "$(HAVE_LIBINIH)" "true"

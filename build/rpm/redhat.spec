@@ -1,5 +1,5 @@
 Name:    pcp
-Version: 7.2.1
+Version: 7.2.2
 Release: 1%{?dist}
 Summary: System-level performance monitoring and performance management
 License: GPL-2.0-or-later AND LGPL-2.1-or-later AND CC-BY-3.0
@@ -3549,5 +3549,5 @@ fi
 %files zeroconf -f pcp-zeroconf-files.rpm
 
 %changelog
-* Fri Aug 14 2026 Jan Kurik <jkurik@redhat.com> - 7.2.1-1
+* Thu Oct 15 2026 Lauren Chilton <lchilton@redhat.com> - 7.2.2-1
 - Update to the latest upstream release

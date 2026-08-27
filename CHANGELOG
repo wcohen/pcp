@@ -1,5 +1,26 @@
-pcp-7.2.1 (30 September 2026)
-    - work-in-progress, not yet released.
+pcp-7.2.1 (14 August 2026)
+    - PMDA additions, enhancements and bug fixes:
+	pmdadenki: reduce diagnostic verbosity in DSO mode
+	pmdalmsensors: allow sensors -j specific-chip fetches
+	pmdaopenmetrics: defer requests import for install
+	pmdaopentelemetry: defer requests import for install
+	pmdaopentelemetry: change -D/--debug semantics to match PCP
+    - Server-side utilities and log management scripts:
+	pmlogcp, pmlogmv: improve error code paths in copy_file
+	pmlogcp, pmlogmv: add fault injection testing
+    - libpcp, libpcp_pmda, libpcp_mmv, libpcp_web and language bindings:
+	libpcp: complete fix for OOB read in __pmDecodeLogStatus
+	libpcp: add __pmProcessFree to assist allocation cleanups
+	libpcp: improve socket options used for non-AF_UNIX contexts
+	libpcp_web: fix truncated timespec strings
+	libpcp_web: fix double-free in pmwebapi_labelsetdup
+	libpcp_archive: fix pmaGetLog heap buffer overflow (integer underflow)
+    - Build, infrastructure, containers and packaging updates:
+	build: restrict resctrl pmda to linux-only builds
+	build: fix macos pcp user permissions for log and config dirs
+	build: macos pmlogger/pmie launchd services use farm+pmpause pattern
+	build: rpm Conflicts/Recommends to prevent atop vs pcp-atop co-install
+	build: deb postinst for libpcp-import2 /run/pmimport creation
 
 pcp-7.2.0 (30 July 2026)
     - PMDA additions, enhancements and bug fixes:

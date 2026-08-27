@@ -598,6 +598,8 @@ util.o
     msgsize			# guarded by util_lock mutex
     squashed			# guarded by __pmLock_extcall mutex when set
     				# in a one-trip initialization
+    float_precision		# ditto
+    double_precision		# ditto
     filename			# guarded by __pmLock_extcall mutex when set
     				# in a one-trip initialization
     ?base			# no unsafe side-effects, see notes in util.c

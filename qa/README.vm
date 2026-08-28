@@ -23,6 +23,11 @@ These notes should be read in conjunction with the README notes.
       if /etc/group needed changing, logout and login again, then
       $ sudo id
       should not prompt for a password and return uid=0 and gid=0
+      OpenSUSE Note: may need
+         $ sudo zypper rm sudo-policy-wheel-auth-self
+      to make the change in sudoers take effect
+      To logout and force all credential to be flushed
+         $ sudo loginctl terminate-user `id -un`
 (g) git clone the PCP tree
     For the QA Farm
       $ cd
@@ -130,7 +135,7 @@ Debian
 
 Fedora
     https://fedoraproject.org/wiki/Releases
-    13 Feb 2026: 43 & 42
+    15 Aug 2026: 44 & 43
     # which packages are installed
     $ rpm -qa --qf '%{NAME}\n'
     # package search recipe (name and info or description)
@@ -215,10 +220,17 @@ CentOS Stream
     $ sudo dnf config-manager --set-enabled crb
     # - need EPEL repo enabled
     $ sudo dnf install epel-release
+    # dealing with EOL and repo changes
+    $ sudo sed -i 's/mirrorlist/#mirrorlist/g' /etc/yum.repos.d/CentOS-*
+    $ sudo sed -i 's|#baseurl=http://mirror.centos.org|baseurl=http://vault.centos.org|g' /etc/yum.repos.d/CentOS-*
+    $ sudo dnf clean all
+    $ sudo dnf update
 
 openSUSE
-    https://en.opensuse.org/Lifetime
-    11 Sep 2025: 15.6 and 16.0
+    https://en.opensuse.org/openSUSE:Roadmap
+    18 Aug 2026: 15.6 and 16.0
+    # Caveats
+    # Tumbleweed hangs the installer if less than 2GB Memory in the VM
     # which packages are installed
     $ rpm -qa --qf '%{NAME}\n'
     # package search recipe (name and info or description)
@@ -277,7 +289,7 @@ SUSE (SLES)
 
 FreeBSD
     https://www.freebsd.org/releases/
-    01 Jan 2026: 14.3 and 15.0
+    01 Jan 2026: 14.3, 14.4, 15.0 and 15.1
     # which packages are installed
     $ pkg info -a | sed -e 's/-[0-9].*//'
     # package search recipe (name and info or description)
@@ -321,7 +333,7 @@ FreeBSD
 
 NetBSD
     http://www.netbsd.org/releases/formal.html
-    11 Sep 2025: 9.4 and 10.1
+    23 Aug 2026: 10.1 and 11.1
     # --- pkgin for pre-build binaries ---
     # which packages are installed
     $ pkg_info -a | sed -e 's/-[0-9].*//'
@@ -384,7 +396,7 @@ Gentoo
 
 Linux Mint
     http://www.linuxmint.com/download.php
-    11 Sep 2025: 22.2
+    26 Aug 2026: 22.3
     # same as Ubuntu
     
 OpenMandriva
@@ -503,6 +515,8 @@ OpenIndiana
 OpenBSD
     https://cdn.openbsd.org/pub/OpenBSD/
     30 May 2026: 7.7, 7.8, 7.9
+    # Note: installer kernel may panic (handy!), the fix on OpenBSD 7.7
+    #       was to change the CD bus from IDE (panic) to SATA (works)
     # which packages are installed
     $ pkg_info -a
     # package search recipe (name only, not info or description)

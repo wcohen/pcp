@@ -29,6 +29,7 @@ cyrus-sasl-md5
 cyrus-sasl-plain
 device-mapper-devel
 ed
+ethtool
 expect
 flex
 gawk
@@ -68,6 +69,7 @@ nmap
 openssl
 openssl-devel
 perl
+perl-Archive-Zip
 perl-autodie
 perl-CPAN
 perl-Date-Manip
@@ -113,6 +115,7 @@ python3-setuptools
 qt5-qtbase-devel
 qt5-qtsvg-devel
 ragel
+rdma-core
 rdma-core-devel
 readline-devel
 redis
@@ -132,6 +135,7 @@ sqlite-devel
 sqlite-libs
 sudo
 sysstat
+systemd
 systemd-devel
 targetcli
 time
@@ -142,3 +146,4 @@ xkeyboard-config
 xz-devel
 zabbix-agent
 zstd
+

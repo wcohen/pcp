@@ -18,7 +18,6 @@ build-essential
 chrpath
 clang
 coreutils
-cppcheck
 cron
 curl
 debhelper
@@ -38,6 +37,7 @@ git
 grep
 iproute2
 jq
+libarchive-zip-perl
 libbpf-dev
 libbpf1
 libclass-dbi-perl
@@ -103,9 +103,9 @@ perl-modules-5.40
 # Debian 13 (trixie)
 libperl-dev
 pkg-config
+postfix
 postgresql-client-common
 psmisc
-pyarrow pip3
 pylint
 python3-all
 python3-all-dev
@@ -119,6 +119,7 @@ python3-pandas
 python3-pil
 python3-prometheus-client
 python3-psycopg2
+python3-pyarrow
 python3-pymongo
 python3-pyodbc
 python3-requests

@@ -18,7 +18,6 @@ bpftrace
 ccache
 clang
 coreutils
-cppcheck
 cronie
 curl
 cyrus-sasl
@@ -66,9 +65,9 @@ memcached
 ncurses-devel
 net-tools
 net-tools-deprecated
-nmap
 openssl
 perl
+perl-Archive-Zip
 perl-DBD-mysql
 perl-Date-Manip
 perl-ExtUtils-MakeMaker

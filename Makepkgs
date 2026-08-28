@@ -356,6 +356,11 @@ then
 		configopts="--sysconfdir=/etc --localstatedir=/var --prefix=/usr"
 		;;
     esac
+elif [ $target = sunos ]
+then
+    # Need to take control of the Python versions, otherwise standard.
+    #
+    configopts="--prefix=/usr --sysconfdir=/etc --localstatedir=/var --with-python3=check"
 else
     # Bog-standard options suitable for a package on any platform.
     # Command line can be used to extend this set, and any unusual
@@ -392,6 +397,11 @@ esac
 #
 case `hostname`
 in
+    bozo-vm|bozo-vm.localdomain)
+	# trying to build pmview here ...
+	#
+	configopts="$configopts --with-qt=debug --without-optimization"
+	;;
     vm11|vm11.localdomain)
 	# gcc -O2 is broken here (for the linux PMDA)
 	#
@@ -400,6 +410,11 @@ in
 	#
 	DEB_CFLAGS_SET=''; export DEB_CFLAGS_SET
 	DEB_CXXFLAGS_SET=''; export DEB_CXXFLAGS_SET
+	;;
+    vm34|vm34.localdomain)
+	# libpf won't build here for latest Arch Linux - 20 Aug 2026
+	#
+	configopts="$configopts --with-pmdabpf=no"
 	;;
 esac
 

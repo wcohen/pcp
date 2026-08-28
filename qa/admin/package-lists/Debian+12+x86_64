@@ -19,7 +19,6 @@ build-essential
 chrpath
 clang
 coreutils
-cppcheck
 cron
 curl
 debhelper
@@ -40,6 +39,7 @@ grep
 iproute2
 jq
 kubernetes-client
+libarchive-zip-perl
 libbpf1
 libbpf-dev
 libclass-dbi-perl
@@ -63,6 +63,7 @@ liblzma-dev
 libncurses-dev
 libnet-snmp-perl
 libperl5.36
+libperl-dev
 libpfm4-dev
 libpython3-dev
 libpython3-stdlib
@@ -102,6 +103,7 @@ openssl
 perl
 perl-modules-5.36
 pkg-config
+postfix
 postgresql-client-common
 psmisc
 pylint
@@ -141,7 +143,5 @@ valgrind
 xfsprogs
 xkb-data
 zabbix-agent
-# suspect licensing restrictions are breaking this in CI
-zfsutils-linux not4ci
 zlib1g-dev
 zstd

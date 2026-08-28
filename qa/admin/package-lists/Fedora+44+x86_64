@@ -17,7 +17,6 @@ bpftrace
 chan-devel
 clang
 coreutils
-cppcheck
 cronie
 curl
 cyrus-sasl
@@ -27,6 +26,7 @@ cyrus-sasl-md5
 cyrus-sasl-plain
 device-mapper-devel
 ed
+ethtool
 expect
 flex
 gawk
@@ -42,8 +42,8 @@ iproute
 httpd
 initscripts
 jq
-kubernetes
-kubernetes-client
+kubernetes1.36-client
+kubernetes1.36
 libbpf
 libbpf-devel
 libcmocka-devel
@@ -69,6 +69,7 @@ nmap
 openssl
 openssl-devel
 perl
+perl-Archive-Zip
 perl-CPAN
 perl-DBD-MySQL
 perl-Date-Manip
@@ -117,6 +118,7 @@ qt5-qtbase-devel
 qt5-qtsvg-devel
 qtchooser
 ragel
+rdma-core
 rdma-core-devel
 readline-devel
 rpm-build
@@ -135,6 +137,7 @@ sqlite-devel
 sqlite-libs
 sudo
 sysstat
+systemd
 systemd-devel
 targetcli
 time

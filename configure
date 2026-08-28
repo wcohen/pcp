@@ -3889,8 +3889,8 @@ printf "%s\n" "#define IS_LINUX 1" >>confdefs.h
     target_distro_variant=''
     if test -f /etc/os-release
     then
-	grep -q 'ID_LIKE="suse"' /etc/os-release 2>/dev/null && target_distro=suse
-	grep -qi 'opensuse"' /etc/os-release 2>/dev/null && target_distro_variant=opensuse
+	grep -q 'ID_LIKE=".*suse' /etc/os-release 2>/dev/null && target_distro=suse
+	grep -qi 'tumbleweed"' /etc/os-release 2>/dev/null && target_distro_variant=tumbleweed
     fi
     test -f /etc/fedora-release && target_distro=fedora
     test -f /etc/redhat-release && target_distro=redhat
@@ -3991,6 +3991,7 @@ else
 fi
 
 
+echo "Distro: $target_distro $target_distro_variant"
 
 if test "$use_optimization" = no
 then
@@ -9402,6 +9403,11 @@ if $pmda_resctrl; then { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: yes
 printf "%s\n" "yes" >&6; }; else { printf "%s\n" "$as_me:${as_lineno-$LINENO}: result: no" >&5
 printf "%s\n" "no" >&6; }; fi
 
+if test -z "$QMAKE" -a "$target_distro_variant" = tumbleweed
+then
+        QMAKE=qmake-qt5
+fi
+
 qmake=$QMAKE
 enable_qt=false
 qt_release=release
@@ -13530,7 +13536,9 @@ printf "%s\n" "yes" >&6; }; else { printf "%s\n" "$as_me:${as_lineno-$LINENO}: r
 printf "%s\n" "no" >&6; }; fi
 
 pmda_postfix=false
-for ac_prog in qshape
+if $have_perl
+then
+            for ac_prog in qshape
 do
   # Extract the first word of "$ac_prog", so it can be a program name with args.
 set dummy $ac_prog; ac_word=$2
@@ -13579,20 +13587,21 @@ fi
   test -n "$QSHAPE" && break
 done
 
-{ printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if the postfix PMDA should be included" >&5
+    { printf "%s\n" "$as_me:${as_lineno-$LINENO}: checking if the postfix PMDA should be included" >&5
 printf %s "checking if the postfix PMDA should be included... " >&6; }
-if test -n "$QSHAPE"
-then
-    pmda_postfix=true
-else
-    for script in /usr/share/doc/packages/postfix-doc/auxiliary/qshape/qshape.pl
-    do
-	if test -f "$script"
-	then
-	    pmda_postfix=true
-	    break
-	fi
-    done
+    if test -n "$QSHAPE"
+    then
+	pmda_postfix=true
+    else
+	for script in /usr/share/doc/packages/postfix-doc/auxiliary/qshape/qshape.pl
+	do
+	    if test -f "$script"
+	    then
+		pmda_postfix=true
+		break
+	    fi
+	done
+    fi
 fi
 PMDA_POSTFIX=$pmda_postfix
 

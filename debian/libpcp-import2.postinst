@@ -1,13 +1,17 @@
 #!/bin/sh -e
 #DEBHELPER#
 
-if which systemd-tmpfiles >/dev/null 2>&1
+# check if systemd is PID 0, so it is running, not just the
+# binary installed
+#
+if [ "`ps -p 1 -o comm=`" = systemd ]
 then
-    if systemd-tmpfiles --create /usr/lib/tmpfiles.d/libpcp_import.conf
+    if which systemd-tmpfiles >/dev/null 2>&1
     then
-	:
-    else
-	echo >&2 "libpcp-import2.postinstall: Warning: systemd-tmpfiles failed"
+	if ! systemd-tmpfiles --create /usr/lib/tmpfiles.d/libpcp_import.conf
+	then
+	    echo >&2 "libpcp-import2.postinstall: Warning: systemd-tmpfiles failed"
+	fi
     fi
 fi
 

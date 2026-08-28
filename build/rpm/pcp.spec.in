@@ -248,7 +248,7 @@ Requires: pcp-selinux = @package_version@
 
 Requires: pcp-libs = @package_version@
 
-%if 0%{?suse_version} == 1600
+%if 0%{?suse_version} >= 1600
 Provides: user(pcp)
 Provides: group(pcp)
 %endif
@@ -360,7 +360,7 @@ Requires: selinux-policy-targeted
 Requires: setools-console
 %endif
 
-%if 0%{?suse_version} == 1600
+%if 0%{?suse_version} >= 1600
 Provides: user(pcpqa)
 Provides: group(pcpqa)
 %endif

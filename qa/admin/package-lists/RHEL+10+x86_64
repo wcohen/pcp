@@ -15,7 +15,6 @@ bpftrace
 chan
 clang
 coreutils
-cppcheck
 cronie
 curl
 cyrus-sasl
@@ -63,6 +62,7 @@ net-tools
 nmap
 openssl
 openssl-devel
+perl-Archive-Zip
 perl-CPAN
 perl-DBD-MySQL
 perl-Date-Manip
@@ -97,6 +97,7 @@ python3-lxml
 python3-openpyxl
 python3-pillow
 python3-pandas
+python3-prometheus_client
 python3-psycopg2
 python3-pyarrow
 python3-pylint

@@ -57,6 +57,7 @@ LinuxMint    18\.3    -       kubernetes-client libsoqt5-dev
 NetBSD       6\.1\.5  -       QtSvg docker json_reformat libibmad libibumad mkfs.gfs2 mysql-client nmap p5-DBD-mysql py36-imaging py36-libvirt py36-prometheus-client qt5 qtchooser realpath sysstat uic valgrind zabbix-agent
 NetBSD       8\.0     -       QtSvg json_reformat libibmad libibumad mkfs.gfs2 py36-imaging py36-libvirt py36-prometheus-client qtchooser realpath sysstat uic valgrind zabbix-agent
 #-- OpenBSD
+OpenBSD      7\.7     -       py3-pandas
 OpenBSD      6\.7     -       libibumad libvirt-python3 py3-openpyxl py3-prometheus-client qtchooser realpath sed grep ed make flex mandoc bc
 OpenBSD      6\.4     -       libibumad libvirt-python3 py3-openpyxl py3-prometheus-client qtchooser realpath
 OpenBSD      6\.3     -       libibumad libvirt-python3 py3-elasticsearch py3-openpyxl py3-prometheus-client qtchooser realpath

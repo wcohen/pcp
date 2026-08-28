@@ -13,7 +13,6 @@ bison
 bpftrace
 clang
 coreutils-single | coreutils not4ci
-cppcheck
 cronie
 curl-minimal
 cyrus-sasl
@@ -34,11 +33,13 @@ gdb
 git
 git-core
 grep
-inih-devel
-iproute
 httpd
+inih-devel
 initscripts
+iproute
 jq
+libbpf
+libbpf-devel
 libcmocka-devel
 libdrm-devel
 libicu-devel
@@ -59,6 +60,7 @@ nmap
 openssl
 openssl-devel
 perl
+perl-Archive-Zip
 perl-CPAN
 perl-DBD-MySQL
 perl-Date-Manip
@@ -92,10 +94,10 @@ python3-pymongo
 python3-requests
 python3-rtslib
 python3-setuptools
-redis6
 rdma-core
 rdma-core-devel
 readline-devel
+redis6
 rpm-build
 rrdtool
 rrdtool-perl

@@ -14,8 +14,8 @@ bison
 bsd-mailx
 build-essential
 chrpath
+clang
 coreutils
-cppcheck
 cron
 curl
 debhelper
@@ -24,6 +24,7 @@ docker.io not4ci
 dpkg-dev
 ed
 ethtool
+expect
 flex
 g++
 gawk
@@ -33,11 +34,14 @@ gfs2-utils
 git
 grep
 iproute2
+jq
+libarchive-zip-perl
 libclass-dbi-perl
 libcmocka-dev
 libdbd-mysql-perl
 libdbd-pg-perl
 libdevmapper-dev
+libdrm-dev
 libextutils-autoinstall-perl
 libfile-slurp-perl
 libgl1-mesa-dri
@@ -52,12 +56,10 @@ liblzma-dev
 libncurses5-dev
 libnet-snmp-perl
 libperl5.26
+libperl-dev
 libpfm4-dev
-libpython-dev
-libpython-stdlib
 libpython3-dev
 libpython3-stdlib
-libqt4-dev
 libqt5svg5-dev
 libreadline-dev
 librrds-perl
@@ -79,6 +81,8 @@ libvirt-daemon-system
 libxml-libxml-perl
 libxml-tokeparser-perl
 libyaml-libyaml-perl
+linux-headers-`uname -r` not4ci
+llvm
 lm-sensors
 make
 man-db
@@ -91,13 +95,10 @@ openssl
 perl
 perl-modules-5.26
 pkg-config
+postfix
 postgresql-client-common
 psmisc
 pylint
-python
-python-all
-python-all-dev
-python-dev
 python3-all
 python3-all-dev
 python3-dev
@@ -105,6 +106,7 @@ python3-elasticsearch
 python3-libvirt
 python3-lxml
 python3-openpyxl
+python3-pandas
 python3-pil
 python3-prometheus-client
 python3-psycopg2
@@ -112,7 +114,6 @@ python3-pymongo
 python3-pyodbc
 python3-requests
 python3-setuptools
-qt4-qmake
 qtbase5-dev
 qtbase5-dev-tools
 qtchooser
@@ -123,6 +124,7 @@ sasl2-bin
 sed
 smartmontools
 socat
+sudo
 sysstat
 systemd
 targetcli-fb

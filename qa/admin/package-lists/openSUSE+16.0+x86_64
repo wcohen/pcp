@@ -67,6 +67,7 @@ net-tools
 net-tools-deprecated
 openssl
 perl
+perl-Archive-Zip
 perl-DBD-mysql
 perl-Date-Manip
 perl-ExtUtils-MakeMaker

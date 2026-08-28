@@ -30,13 +30,15 @@ do
     fi
 done
 
+sts=1
 if $save_tmp
 then
     tmp=`pwd`/tmp
 else
     tmp=/var/tmp/checkdirs.$$
-    trap "rm -f $tmp.*; exit 0" 0 1 2 3 15
+    trap "rm -f $tmp.*; exit \$sts" 0 1 2 3 15
 fi
+rm -f $tmp.*
 
 if [ ! -f ../../src/include/pcp.conf ]
 then
@@ -162,13 +164,16 @@ do
 		if [ ! -f "$dst" ]
 		then
 		    echo "Error: $link symlink destination ($dst) has vanished"
+		    touch $tmp.error
 		fi
 		cd $here
 	    else
 		echo "Error: $link cd to $dir failed"
+		touch $tmp.error
 	    fi
 	else
 	    echo "Error: $link directory $dir vanished"
+	    touch $tmp.error
 	fi
     elif [ -f "$link" ]
     then
@@ -180,6 +185,7 @@ do
 	fi
     else
 	echo "Error: $link symlink has vanished"
+	touch $tmp.error
     fi
 done
 grep -v '	->	' <$tmp.toc >$tmp.tmp
@@ -202,6 +208,7 @@ do
 	    continue
 	fi
 	echo "Error: $file in tarball but missing"
+	touch $tmp.error
 	continue
     fi
     $debug && echo "$file: file found"
@@ -209,6 +216,7 @@ do
     if [ "$perm" != "$iperm" ]
     then
 	echo "Error: $file permissions $perm (tarball) != $iperm (installed)"
+	touch $tmp.error
     fi
     if [ "$size" != "$isize" ]
     then
@@ -217,6 +225,7 @@ do
 	    $verbose && echo "Exception: $file: different size is OK"
 	else
 	    echo "Error: $file size $size (tarball) != $isize (installed)"
+	    touch $tmp.error
 	fi
 
     fi
@@ -238,6 +247,7 @@ do
     if [ ! -d "$dir" ]
     then
 	echo "Error: $dir directory has vanished"
+	touch $tmp.error
 	continue
     fi
     # don't look for extras in some dirs
@@ -262,6 +272,11 @@ do
 	if ! grep -q "	$f\$" $tmp.toc
 	then
 	    echo "Error: /$f exists but not in tarball"
+	    touch $tmp.error
 	fi
     done
 done
+
+# all OK?
+#
+[ ! -f $tmp.error ] && sts=0

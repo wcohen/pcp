@@ -48,7 +48,7 @@ do
 		;;
         e)	# i've been exec'd, no refresh or ping
 		refresh=false
-		ping=false
+		quick=true
 		;;
 	q)	quick=true
 		refresh=false

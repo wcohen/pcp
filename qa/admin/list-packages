@@ -706,7 +706,7 @@ then
 	# updates?
 	#
 	cp "$home/package-lists/${distro}+${version}+${arch}" $tmp.new
-	if [ -f $tmp.dup ]
+	if [ -s $tmp.dup ]
 	then
 	    if $verbose
 	    then
@@ -718,7 +718,7 @@ then
 	    cat $tmp.dup >>$tmp.del
 	    cat $tmp.dup >>$tmp.add
 	fi
-	if [ -f $tmp.del ]
+	if [ -s $tmp.del ]
 	then
 	    if $verbose
 	    then
@@ -734,15 +734,28 @@ $0 == "'"$pkg"'"	{ next }
 		mv $tmp.tmp $tmp.new
 	    done
 	fi
-	if [ -f $tmp.add ]
+	if [ -s $tmp.add ]
 	then
 	    if $verbose
 	    then
 		echo >&2 "Info: packages to be added ..."
 		_fmt 72 <$tmp.add | sed -e 's/^/    /'
 	    fi
+	    # add in sorted order (or close to that) ... insertion sort
+	    # in the first candidate spot
+	    #
+	    sort $tmp.add | uniq \
+	    | while read pkg
+	    do
+		awk <$tmp.new >$tmp.tmp '
+/^#/			{ print; next }
+done == 0 && $1 > "'"$pkg"'"		{ print "'"$pkg"'"; done = 1 }
+			{ print }
+END			{ if (done == 0) print "'"$pkg"'" }'
+		mv $tmp.tmp $tmp.new
+	    done
 	fi
-	if ! diff -q "$home/package-lists/${distro}+${version}+${arch}" $tmp.new
+	if ! diff -q "$home/package-lists/${distro}+${version}+${arch}" $tmp.new >/dev/null
 	then
 	    if $verbose
 	    then

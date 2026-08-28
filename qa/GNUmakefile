@@ -47,7 +47,7 @@ endif
 #
 .SUFFIXES:
 
-default_pcp default: localconfig $(SELINUX_FILES) $(SUBDIRS)
+default_pcp default: qa_outfiles localconfig $(SELINUX_FILES) $(SUBDIRS)
 	$(SUBDIRS_MAKERULE)
 
 setup: $(SUBDIRS) localconfig qa_hosts
@@ -62,7 +62,7 @@ LDIRT += 051.work 134.full.* \
 	 *.log *.log.prev eek* urk* so_locations tmp.* gmon.out oss.qa.tar.gz \
 	 *.full.ok *.new rc_cron_check.clean \
 	 make.out qa_hosts stap_*.ko localconfig check.time \
-	 .find-metric
+	 .find-metric qa_outfiles
 
 # these ones are links to the real files created when the associated
 # test is run
@@ -94,7 +94,7 @@ OTHERS = group triaged qa_hosts.primary README sanity.coverage \
 	 20071023-08-06-36.folio 20071023-08-06-36.view \
 	 $(shell echo valgrind-suppress* helgrind-suppress*)
 
-DOTOUTFILES = $(shell ./list-outfiles)
+DOTOUTFILES = $(shell cat qa_outfiles)
 
 qa_hosts:	qa_hosts.primary mk.qa_hosts
 	./mk.qa_hosts
@@ -125,6 +125,9 @@ $(IAM).pp: $(IAM).te $(IAM).fc $(IAM).if
 $(IAM).pp.bz2: $(IAM).pp
 	$(BZIP2) -9 < $^ > $@
 endif
+
+qa_outfiles:	group list-outfiles 
+	./list-outfiles >qa_outfiles
 
 # and do nothing if NNN.out is older than NNN
 #

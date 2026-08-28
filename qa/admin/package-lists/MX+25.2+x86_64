@@ -1,5 +1,5 @@
-# PCP required package list for MX 23.2 x86_64
-# created by kenj on vm13 Wed  7 Feb 09:15:54 AEDT 2024
+# PCP required package list for MX 25.2 x86_64
+# created by kenj on vm13 circa Aug 2026
 #
 Text::CSV_XS cpan
 apache2

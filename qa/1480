@@ -37,7 +37,7 @@ test $? -eq 0 || _notrun 'Python pcp pmda module is not installed'
 # some of the sensors may report large values and we need to
 # avoid scientific notation for floats
 #
-PCP_FLOAT_PRECISION=12; export PCP_FLOAT_PRECISION
+PCP_FLOAT_PRECISION=10; export PCP_FLOAT_PRECISION
 
 # This test should not be run if pmda lmsensors not installed
 # or if sensors binary not installed
@@ -97,7 +97,6 @@ END				{ print int(sum+0.5) }'`
 echo "pminfo -f lmsensors output:" >> $seq_full
 
 PMDA=`pminfo -f lmsensors | tee -a $seq_full | grep '^  *value ' | \
-tee /tmp/eek | \
 	awk '{ sum += $2 } END { printf "%d\n",sum+0 }'`
 
 if _within_tolerance "Expecting $SENS +- 10%" $PMDA $SENS 10%; then

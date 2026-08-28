@@ -88,11 +88,14 @@ _build_allpkgs()
 	apt-cache dumpavail | sed -n -e '/^Package: /s///p' >$tmp.allpkgs
 	;;
 
-    RHEL|Fedora|CentOS|openSUSE|SUSE\ SLES)
+    RHEL|Fedora|CentOS|openSUSE|SUSE\ SLES|OpenMandriva|AmazonLinux)
 	if which zypper >/dev/null 2>&1
 	then
-	    echo >&2 "Botch: _build_allpkgs(): no recipe for rpm $distro"
-	    exit 1
+	    zypper --no-refresh packages 2>&1 \
+	    | awk -F \| ' { print $3 }' \
+	    | sed >$tmp.allpkgs \
+		-e 's/  *//g' \
+	    # end
 	elif which dnf >/dev/null 2>&1
 	then
 	    ( dnf list available; dnf list installed ) 2>&1 \
@@ -136,11 +139,6 @@ p
 }'
 	;;
 
-    *)
-	echo >&2 "Botch: _build_allpkgs(): no recipe for $distro"
-	exit 1
-	;;
-
     Slackware)
 	# lines after awk look like ...
 	# ./aspell-word-lists/aspell-cs-20040614_1-x86_64-5.txz
@@ -162,6 +160,11 @@ p
     ArchLinux)
 	pacman -Ss . \
 	| sed -n >$tmp.allpkgs -e '/^[^ ]/s/ .*//p'
+	;;
+
+    *)
+	echo >&2 "Botch: _build_allpkgs(): no recipe for $distro"
+	exit 1
 	;;
 
     esac

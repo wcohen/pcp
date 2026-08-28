@@ -38,6 +38,7 @@ localconfig.h
 pcpqa.installed
 pcp-testsuite.pp
 qa_hosts
+qa_outfiles
 rc_cron_check.clean
 stap_*.ko
 sudo

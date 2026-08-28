@@ -26,7 +26,7 @@ These notes should be read in conjunction with the README notes.
       OpenSUSE Note: may need
          $ sudo zypper rm sudo-policy-wheel-auth-self
       to make the change in sudoers take effect
-      To logout and force all crediential to be flushed
+      To logout and force all credential to be flushed
          $ sudo loginctl terminate-user `id -un`
 (g) git clone the PCP tree
     For the QA Farm
@@ -230,7 +230,7 @@ openSUSE
     https://en.opensuse.org/openSUSE:Roadmap
     18 Aug 2026: 15.6 and 16.0
     # Caveats
-    # Tubleweed hangs the installer if less than 2GB Memory in the VM
+    # Tumbleweed hangs the installer if less than 2GB Memory in the VM
     # which packages are installed
     $ rpm -qa --qf '%{NAME}\n'
     # package search recipe (name and info or description)
@@ -289,7 +289,7 @@ SUSE (SLES)
 
 FreeBSD
     https://www.freebsd.org/releases/
-    01 Jan 2026: 14.3, 14.4 15.0 and 15.1
+    01 Jan 2026: 14.3, 14.4, 15.0 and 15.1
     # which packages are installed
     $ pkg info -a | sed -e 's/-[0-9].*//'
     # package search recipe (name and info or description)
@@ -532,7 +532,7 @@ OpenBSD
     # package install recipe
     $ sudo pkg_add <package>
     # update all packages recipe
-    $ sudo pkgin update
+    $ sudo pkg_add -u
     # remove a package
     $ sudo pkg_delete <package>
     # unattended release upgrade recipe ... only supported from

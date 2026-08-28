@@ -42,6 +42,8 @@ iproute
 httpd
 initscripts
 jq
+kubernetes1.36-client
+kubernetes1.36
 libbpf
 libbpf-devel
 libcmocka-devel

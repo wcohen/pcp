@@ -31,7 +31,7 @@ _usage()
 }
 
 quick=false
-refesh=true
+refresh=true
 check=false
 modified=false
 debug=false
@@ -271,7 +271,7 @@ $1 == "'"$tty"'"	{ $3 = "'"$type"'"; $4 = "'"$opts"'" }
 	then
 	    if ! sudo cp /etc/ttys /etc/ttys.post-setup.save
 	    then
-		echo "Error: updating /etc/ifconfig.$iface failed"
+		echo "Error: saving /etc/ttys failed"
 		exit
 	    fi
 	fi
@@ -362,15 +362,6 @@ then
     use_rsync=true
     $debug && echo "Debug: use_rsync=$use_rsync"
 fi
-use_systemctl=false
-# check if systemd is PID 0, so it is running, not just the
-# binary installed
-#
-if [ "`ps -p 1 -o comm=`" = systemd ]
-then
-    use_systemctl=true
-    $debug && echo "Debug: use_systemctl=$use_systemctl"
-fi
 
 pkg_env=""
 if which apt-get >/dev/null 2>&1
@@ -460,6 +451,16 @@ if [ -f /etc/amazon-linux-release ]
 then
     is_amazon_linux=true
     $debug && echo "Debug: is_amazon_linux=$is_amazon_linux"
+fi
+
+use_systemctl=false
+# check if systemd is PID 0, so it is running, not just the
+# binary installed
+#
+if [ "`ps -p 1 -o comm=`" = systemd ]
+then
+    use_systemctl=true
+    $debug && echo "Debug: use_systemctl=$use_systemctl"
 fi
 
 # network ... IPv4 static, gateway and DNS for some platforms
@@ -676,7 +677,7 @@ s/:.*//p
 			cat $tmp.tmp
 			$debug && echo "Debug: /etc/mygate updated"
 		    fi
-		    if sudo cp $tmp.mygate /etc/mygate
+		    if sudo cp $tmp.gateway /etc/mygate
 		    then
 			touch $tmp.changed
 		    else
@@ -699,9 +700,9 @@ s/:.*//p
 		exit
 	    fi
 	fi
-    elif $isnet_bsd
+    elif $is_netbsd
     then
-	# MetBSD-style
+	# NetBSD-style
 	#
 	rm -f $tmp.changed
 	cat <<End-of-File >$tmp.$iface
@@ -797,8 +798,8 @@ then
 	if [ -f /etc/systemd/resolved.conf ]
 	then
 	    sed </etc/systemd/resolved.conf >$tmp.tmp \
-		-e '/^#*DNS=/s/.*/DNS=$nameserver/' \
-		-e '/^#*Domains=/s/.*/Domains=$domain/' \
+		-e "/^#*DNS=/s/.*/DNS=$nameserver/" \
+		-e "/^#*Domains=/s/.*/Domains=$domain/" \
 	    # end
 	    if diff /etc/systemd/resolved.conf $tmp.tmp >$tmp.diffs
 	    then
@@ -941,7 +942,6 @@ then
 		    fi
 		fi
 	    fi
-	    cp $tmp.tmp /tmp/eek
 	    if sudo resolvconf -a $iface <$tmp.tmp
 	    then
 		echo "Info: /etc/resolv.conf fixed"
@@ -1756,4 +1756,12 @@ then
 fi
 
 echo "Final check ..."
-qa/admin/check-vm --post-setup
+if ! qa/admin/check-vm --post-setup
+then
+    exit
+fi
+
+# if we get this far, it is probably OK
+#
+sts=0
+

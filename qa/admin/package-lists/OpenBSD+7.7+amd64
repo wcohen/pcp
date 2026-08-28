@@ -1,4 +1,4 @@
-# PCP required package list for OpenBSD 7.4 amd64
+# PCP required package list for OpenBSD 7.7 amd64
 # created by kenj on vm37.localdomain Tue Nov  7 16:34:09 AEDT 2023
 #
 LWP::UserAgent cpan

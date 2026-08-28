@@ -1,4 +1,4 @@
-# PCP required package list for FreeBSD 14.3 amd64
+# PCP required package list for FreeBSD 14 amd64
 # created by kenj on vm06 Thu Jan  1 16:00:35 AEDT 2026
 #
 apache24

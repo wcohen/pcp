@@ -102,11 +102,13 @@ conversion to ``scientific notation'' that is done by
 .BR printf (3)
 for the
 .B %g
-format specifier.
+format specifier;
+acceptable values are \(>= 1 and \(<= 10.
 Similarly, the environment variable
 .B PCP_DOUBLE_PRECISION
 can be set to change the precision of double precision floating
-point values (type PM_TYPE_DOUBLE) from the default value of 16.
+point values (type PM_TYPE_DOUBLE) from the default value of 16;
+acceptable values are \(>= 1 and \(<= 18.
 .SH SEE ALSO
 .BR PMAPI (3),
 .BR pmAtomStr (3),

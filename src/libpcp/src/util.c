@@ -1019,14 +1019,32 @@ pmPrintValue(FILE *f,			/* output stream */
 
     if (squashed == -1) {
 	/* one-trip initialization */
+	char	*value;
+	long	new;
 	PM_LOCK(__pmLock_extcall);
 	squashed = 0;
 	if (getenv("PCP_SQUASH_NEWLINES") != NULL)	/* THREADSAFE */
 	    squashed = 1;
-	if ((p = getenv("PCP_FLOAT_PRECISION")) != NULL)	/* THREADSAFE */
-	    float_precision = atoi(p);
-	if ((p = getenv("PCP_DOUBLE_PRECISION")) != NULL)/* THREADSAFE */
-	    double_precision = atoi(p);
+	if ((value = getenv("PCP_FLOAT_PRECISION")) != NULL) { /* THREADSAFE */
+	    new = strtol(value, &p, 10);
+	    if (*p != '\0' || new < 1 || new > 10) {
+		if (pmDebugOptions.misc) {
+		    fprintf(stderr, "pmPrintValue: illegal PCP_FLOAT_PRECISION (%s): ignored\n", value);
+		}
+	    }
+	    else
+		float_precision = (int)new;
+	}
+	if ((value = getenv("PCP_DOUBLE_PRECISION")) != NULL) { /* THREADSAFE */
+	    new = strtol(value, &p, 10);
+	    if (*p != '\0' || new < 1 || new > 18) {
+		if (pmDebugOptions.misc) {
+		    fprintf(stderr, "pmPrintValue: illegal PCP_DOUBLE_PRECISION (%s): ignored\n", value);
+		}
+	    }
+	    else
+		double_precision = (int)new;
+	}
 	PM_UNLOCK(__pmLock_extcall);
     }
 

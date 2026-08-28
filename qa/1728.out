@@ -1,4 +1,5 @@
 QA output created by 1728
+PCP_*_PRECISION cases ...
 +++ No env +++
 sample.float.write_me 1 2.1474836e+09
 sample.double.write_me 1 1.801439850948198e+16
@@ -30,7 +31,7 @@ pmPrintValue: illegal PCP_FLOAT_PRECISION (18): ignored
 sample.float.write_me 1 2.1474836e+09
 sample.double.write_me 1 18014398509481984
 
-Error cases ...
+PCP_*_PRECISION error cases ...
 +++ env = 0 +++
 pmPrintValue: illegal PCP_FLOAT_PRECISION (0): ignored
 pmPrintValue: illegal PCP_DOUBLE_PRECISION (0): ignored
@@ -65,3 +66,15 @@ pmPrintValue: illegal PCP_FLOAT_PRECISION (1foo2): ignored
 pmPrintValue: illegal PCP_DOUBLE_PRECISION (1foo2): ignored
 sample.float.write_me 1 2.1474836e+09
 sample.double.write_me 1 1.801439850948198e+16
+
+PCP_SQUASH_NEWLINES unset ...
+
+sample.string.write_me
+    value "foo
+bar
+mumble or fratz"
+
+PCP_SQUASH_NEWLINES set ...
+
+sample.string.write_me
+    value "foo bar mumble or fratz"

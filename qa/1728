@@ -36,6 +36,11 @@ fi
 _cleanup()
 {
     cd $here
+    # put things back ...
+    #
+    pmstore sample.float.write_me 13 >>$seq_full 2>&1
+    pmstore sample.double.write_me 13 >>$seq_full 2>&1
+    pmstore sample.string.write_me "13" >>$seq_full 2>&1
     $sudo rm -rf $tmp $tmp.*
 }
 
@@ -76,11 +81,16 @@ _work()
 pmstore sample.float.write_me 2147483647 >>$seq_full 2>&1
 # 2^54-1
 pmstore sample.double.write_me 18014398509481983 >>$seq_full 2>&1
+# multi-line
+pmstore sample.string.write_me >>$seq_full 2>&1 'foo
+bar
+mumble or fratz'
 
 PCP_DEBUG=misc; export PCP_DEBUG
 
 # real QA test starts here
 
+echo "PCP_*_PRECISION cases ..."
 # > 10 => error for float
 # all ok for double
 #
@@ -90,11 +100,37 @@ do
 done
 
 echo
-echo "Error cases ..."
+echo "PCP_*_PRECISION error cases ..."
 for env in 0 -1 11 19 8.2 a 1foo2
 do
     _work $env
 done
+
+unset PCP_FLOAT_PRECISION
+unset PCP_DOUBLE_PRECISION
+
+echo
+echo "PCP_SQUASH_NEWLINES unset ..."
+if $do_valgrind
+then
+_run_valgrind pminfo -f sample.string.write_me
+else
+pminfo -f sample.string.write_me
+fi \
+| _filter
+
+echo
+echo "PCP_SQUASH_NEWLINES set ..."
+PCP_SQUASH_NEWLINES= ; export PCP_SQUASH_NEWLINES
+if $do_valgrind
+then
+_run_valgrind pminfo -f sample.string.write_me
+else
+pminfo -f sample.string.write_me
+fi \
+| _filter
+
+unset PCP_SQUASH_NEWLINES
 
 # success, all done
 exit

@@ -1,5 +1,6 @@
 QA output created by 1729
 QA output created by 1728 --valgrind
+PCP_*_PRECISION cases ...
 +++ No env +++
 === std out ===
 sample.float.write_me 1 2.1474836e+09
@@ -112,7 +113,7 @@ definitely lost: 0 bytes in 0 blocks
 indirectly lost: 0 bytes in 0 blocks
 ERROR SUMMARY: 0 errors from 0 contexts ...
 
-Error cases ...
+PCP_*_PRECISION error cases ...
 +++ env = 0 +++
 === std out ===
 sample.float.write_me 1 2.1474836e+09
@@ -206,6 +207,36 @@ pmPrintValue: illegal PCP_DOUBLE_PRECISION (1foo2): ignored
 === filtered valgrind report ===
 Memcheck, a memory error detector
 Command: pmprobe -v sample.float.write_me sample.double.write_me
+LEAK SUMMARY:
+definitely lost: 0 bytes in 0 blocks
+indirectly lost: 0 bytes in 0 blocks
+ERROR SUMMARY: 0 errors from 0 contexts ...
+
+PCP_SQUASH_NEWLINES unset ...
+=== std out ===
+
+sample.string.write_me
+    value "foo
+bar
+mumble or fratz"
+=== std err ===
+=== filtered valgrind report ===
+Memcheck, a memory error detector
+Command: pminfo -f sample.string.write_me
+LEAK SUMMARY:
+definitely lost: 0 bytes in 0 blocks
+indirectly lost: 0 bytes in 0 blocks
+ERROR SUMMARY: 0 errors from 0 contexts ...
+
+PCP_SQUASH_NEWLINES set ...
+=== std out ===
+
+sample.string.write_me
+    value "foo bar mumble or fratz"
+=== std err ===
+=== filtered valgrind report ===
+Memcheck, a memory error detector
+Command: pminfo -f sample.string.write_me
 LEAK SUMMARY:
 definitely lost: 0 bytes in 0 blocks
 indirectly lost: 0 bytes in 0 blocks

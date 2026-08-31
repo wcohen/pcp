@@ -458,12 +458,13 @@ LINKER_MAKERULE = \
 # tree. Call as $(call QT_LINKER_FIXUP,$(BINARY)) after $(LNMAKE).
 # Unlike the $(PROGTARGET)/$(LIBTARGET) rules, "build-me" has no mtime-based
 # prerequisites, so its recipe (and this fixup) can run again on an already-
-# fixed binary; skip anything already rooted at $(PCP_LIB_DIR) so repeat
-# invocations stay a no-op instead of nesting the prefix.
+# fixed binary; skip anything already absolute (not just already rooted at
+# $(PCP_LIB_DIR)) so repeat invocations stay a no-op instead of nesting the
+# prefix onto a path that is already usable.
 QT_LINKER_FIXUP = \
     for lib in `otool -L $(1) | ${AWK} '/libpcp/ {print $$1}'`; do \
         case "$$lib" in \
-            $(PCP_LIB_DIR)/*) ;; \
+            /*) ;; \
             *) install_name_tool -change $$lib $(PCP_LIB_DIR)/$$lib $(1) ;; \
         esac; \
     done

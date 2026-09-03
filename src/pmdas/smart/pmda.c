@@ -3100,9 +3100,8 @@ uuid_instance_refresh(void)
 				/* try alternate path */
 				pmsprintf(buffer, sizeof(buffer), "/sys/block/%s/wwid", dev_name);
 				if ((fd = open(buffer, O_RDONLY)) < 0) {
-					/* alternative path also bad */
-					pclose(pf);
-					return -oserror();
+					/* no wwid for this device, skip it */
+					continue;
 				}
 			}
 		}
